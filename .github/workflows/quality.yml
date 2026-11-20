@@ -25,6 +25,8 @@ jobs:
         run: |
           node --check game.js
           node --check app.js
+          node --check narration.js
+          node --check ai-safety.js
           node --check ai-worker.js
           node --check sw.js
       - name: Run all engine, save and UI contract tests
@@ -42,5 +44,7 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Test 390x844 mobile interaction and offline shell
+      - name: Build exact GitHub Pages artifact
+        run: npm run build
+      - name: Test 390x844 mobile interaction and offline shell against production dist
         run: node tests/browser-smoke.mjs
