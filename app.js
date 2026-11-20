@@ -1,4 +1,5 @@
 import { newGame, loadGame, applyAction, promptFor, prompts, SCENES } from "./game.js";
+import { cleanNarration } from "./narration.js";
 
 const STORE = "unwritten-realms-save-v1";
 const el = id => document.getElementById(id);
@@ -10,6 +11,7 @@ let ready = false;
 let loading = false;
 let busy = false;
 let requestId = 0;
+let activeModel = "light";
 const awaiting = new Map();
 
 function persist() {
@@ -70,12 +72,14 @@ function disableAI(message = "AI off. The rule-based story engine is ready to pl
   for (const pending of awaiting.values()) pending.reject(new Error("AI disabled"));
   awaiting.clear();
   el("mode-label").textContent = "Story engine";
-  el("load-ai").hidden = false;
-  el("load-ai").disabled = false;
+  for (const id of ["load-ai", "load-ai-enhanced"]) {
+    el(id).hidden = false;
+    el(id).disabled = false;
+  }
   el("disable-ai").hidden = true;
   setAIStatus(message);
 }
-function startAI() {
+function startAI(model = "light") {
   if (loading || ready) return;
   if (!("Worker" in window)) {
     setAIStatus("This browser cannot run the local AI worker. The story engine remains playable.", true);
@@ -86,9 +90,11 @@ function startAI() {
     return;
   }
   loading = true;
+  activeModel = model === "enhanced" ? "enhanced" : "light";
   el("load-ai").disabled = true;
+  el("load-ai-enhanced").disabled = true;
   el("disable-ai").hidden = false;
-  setAIStatus("Preparing local AI… this may download 118 MB of model weights plus supporting files.");
+  setAIStatus(activeModel === "enhanced" ? "Preparing clearer AI… about 272 MB of weights plus support files. Device compatibility is not guaranteed." : "Preparing lightweight AI… about 118 MB of weights plus support files.");
   try {
     worker = new Worker("./ai-worker.js", { type: "module" });
     worker.onerror = event => {
@@ -103,9 +109,11 @@ function startAI() {
         loading = false;
         ready = true;
         el("load-ai").hidden = true;
+        el("load-ai-enhanced").hidden = true;
         el("load-ai").disabled = false;
-        el("mode-label").textContent = "Local AI active";
-        setAIStatus("Local AI loaded in this browser. Your next action will receive an AI-written narration.");
+        el("load-ai-enhanced").disabled = false;
+        el("mode-label").textContent = activeModel === "enhanced" ? "Clearer AI" : "Lightweight AI";
+        setAIStatus((activeModel === "enhanced" ? "Clearer" : "Lightweight") + " local AI loaded. It may still make mistakes. Tap Turn AI off for the reliable story-engine text.");
       } else if (data.type === "error") {
         if (data.id != null && awaiting.has(data.id)) {
           awaiting.get(data.id).reject(new Error(data.message || "Generation failed"));
@@ -120,7 +128,7 @@ function startAI() {
         }
       }
     };
-    worker.postMessage({ type: "init" });
+    worker.postMessage({ type: "init", model: activeModel });
   } catch (err) {
     disableAI("Could not create local AI worker: " + err.message);
   }
@@ -158,12 +166,13 @@ async function takeAction(raw) {
     setAIStatus("Your device is narrating the consequences…");
     try {
       const narration = await generate(promptFor(result));
-      if (typeof narration === "string" && narration.trim().length >= 25) {
+      const readable = cleanNarration(narration);
+      if (readable) {
         const last = state.history[state.history.length - 1];
-        if (last && last.role === "narrator") last.text = narration.trim().slice(0, 1500);
+        if (last && last.role === "narrator") last.text = readable;
         persist();
-        setAIStatus("Local AI is active. Your story stays on this device.");
-      } else setAIStatus("AI returned no usable narrative; showing the reliable story-engine outcome.");
+        setAIStatus("Narration complete. The story remains saved on your device.");
+      } else setAIStatus("The AI response was unclear. Kept the original, readable game-engine result instead.", true);
     } catch (error) {
       setAIStatus("AI could not narrate this turn: " + error.message + ". Your action was saved; story-engine outcome shown.", true);
     }
@@ -178,7 +187,8 @@ el("action").addEventListener("keydown", event => {
     takeAction(el("action").value);
   }
 });
-el("load-ai").addEventListener("click", startAI);
+el("load-ai").addEventListener("click", () => startAI("light"));
+el("load-ai-enhanced").addEventListener("click", () => startAI("enhanced"));
 el("disable-ai").addEventListener("click", () => disableAI());
 for (const button of document.querySelectorAll("[data-panel]")) {
   button.addEventListener("click", () => {
