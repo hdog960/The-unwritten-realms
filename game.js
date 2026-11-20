@@ -381,7 +381,7 @@ export function applyAction(previous, input) {
   if (s.flags.ending === "restored") log(s,"You restored the beacon and returned dawn to the valley.");
   if (s.flags.ending === "sealed") log(s,"You sealed the moon beacon beneath the keep.");
   if (s.flags.ending === "claimed") log(s,"You claimed a shard of the moon beacon for yourself.");
-  s.history.push({ role: "player", text: raw }, { role: "narrator", text: outcome });
+  s.history.push({ role: "player", text: raw }, { role: "narrator", text: outcome, canonical: outcome });
   s.history = s.history.slice(-60);
   return { state: s, outcome, previousScene: prior, action: raw, freeform };
 }
