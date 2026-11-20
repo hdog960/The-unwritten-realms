@@ -132,7 +132,8 @@
       <p>Designed for devices like iPhone 17 Pro Max. Safari can still close or crash under memory pressure: JavaScript cannot prevent this. Export a save backup, close other tabs, and use Wi-Fi. Weights download: approximately 272 MB; runtime memory is higher. Never starts automatically.</p>
       <label><input id="mobile-ai-consent" type="checkbox"> I understand this experiment may crash Safari; load only when I explicitly tap the button.</label>
       <button class="primary" id="load-ai-mobile" type="button">Try larger AI · 360M (experimental)</button>
-      <p class="mobile-ai-status" id="mobile-ai-status" role="status" aria-live="polite">v0.6.3 · Waiting for controls. If this text never changes after tapping, the installed shortcut is running old JavaScript.</p>
+      <p class="mobile-ai-status" id="mobile-ai-status" role="status" aria-live="polite">v0.6.4 · Startup controller has not run. JavaScript may be blocked.</p>
+      <button class="tool" id="repair-home-app" type="button" hidden>Repair game code (keeps saved adventure)</button>
     </fieldset>
     <p>Model downloads only start when you tap a supported option. Extra support files also download. Neither model is guaranteed to understand every action. If its reply looks malformed, the game uses its regular narration instead. Your existing save is kept.</p>
     <div class="statusline" id="ai-status" role="status">AI off. The rule-based story engine is ready to play.</div>
@@ -154,8 +155,53 @@
   </section>
   <section id="panel-map" class="panel" hidden><h3>Explored places</h3><div id="map-info"></div></section>
   <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try. Explore the roads, chapel, forest, watchtower and keep. Investigate clues and choose what to do about the moon beacon. Important choices stay in your journal.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
-  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6.3 · Free to play · No API keys</p>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6.4 · Free to play · No API keys</p>
 </main>
-<script type="module" src="./app.js?v=063"></script>
+<script>
+(function(){
+ var status=document.getElementById("mobile-ai-status");
+ var repair=document.getElementById("repair-home-app");
+ var button=document.getElementById("load-ai-mobile");
+ var ready=false;
+ function failed(message){if(ready)return;status.textContent="v0.6.4 · "+message;repair.hidden=false;}
+ window.__unwrittenBoot={
+  connected:function(){ready=true;repair.hidden=true;status.textContent="v0.6.4 controls connected. Tap 360M to check WebGPU.";},
+  failed:failed
+ };
+ status.textContent="v0.6.4 startup controller active. Loading game controls…";
+ button.addEventListener("click",function(event){
+  if(ready)return;
+  event.preventDefault();event.stopImmediatePropagation();
+  failed("STARTUP-01: Game JavaScript did not initialize. Tap Repair game code below; your adventure save stays intact.");
+ },true);
+ window.addEventListener("error",function(event){
+  if(!ready)failed("STARTUP-03: JavaScript startup failed: "+String(event.message||(event.target&&event.target.src)||"script error").slice(0,140));
+ },true);
+ window.addEventListener("unhandledrejection",function(event){
+  if(!ready)failed("STARTUP-04: App startup rejected: "+String(event.reason||"unknown").slice(0,140));
+ });
+ repair.addEventListener("click",async function(){
+  repair.disabled=true;
+  status.textContent="v0.6.4 · Repairing app shell without touching saved adventures…";
+  var home=new URL("./",location.href);
+  try {
+   if("serviceWorker" in navigator){
+    var regs=await navigator.serviceWorker.getRegistrations();
+    for(var i=0;i<regs.length;i++){
+     var scope=new URL(regs[i].scope);
+     if(scope.origin===home.origin&&scope.pathname===home.pathname)await regs[i].unregister();
+    }
+   }
+   if("caches" in window){
+    var keys=await caches.keys();
+    for(var j=0;j<keys.length;j++)if(keys[j].indexOf("unwritten-realms-shell-")===0)await caches.delete(keys[j]);
+   }
+  }catch(error){status.textContent="v0.6.4 · Repair note: "+String(error.message||error).slice(0,140)+"; refreshing game code…";}
+  location.replace(home.href+"?app-refresh=064");
+ });
+ setTimeout(function(){if(!ready)failed("STARTUP-02: Game module never completed loading. Tap Repair game code below.");},6000);
+})();
+</script>
+<script type="module" src="./app.js?v=064"></script>
 </body>
 </html>

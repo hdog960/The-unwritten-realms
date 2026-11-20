@@ -34,7 +34,7 @@ const aiDevice = {
   maxTouchPoints: navigator.maxTouchPoints,
   mobileExperience
 };
-const MOBILE_AI_BUILD = "v0.6.3";
+const MOBILE_AI_BUILD = "v0.6.4";
 let mobileAttempt = false;
 const baseLightLabel = "Lightweight AI · ~118 MB";
 const baseClearLabel = mobileExperience ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
@@ -211,7 +211,7 @@ function startAI(choice = "light") {
   el("disable-ai").hidden = false;
   setAIStatus(activeModel === "enhanced" ? "360M tap accepted. Starting the isolated worker; checking WebGPU before any download." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
   try {
-    worker = new Worker("./ai-worker.js?v=063", { type: "module" });
+    worker = new Worker("./ai-worker.js?v=064", { type: "module" });
     const activeWorker = worker;
     worker.onmessageerror = () => { if (worker === activeWorker) disableAI("WORKER-02: AI worker message failed. Your story engine still works."); };
     worker.onerror = event => {
@@ -410,6 +410,7 @@ try {
   el("text-size").setAttribute("aria-pressed", String(large));
 } catch {}
 render();
+window.__unwrittenBoot?.connected();
 el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " controls connected. Tap the experimental button for live GPU status.";
 // The checkbox + experimental button are always in the HTML, including
 // on iPhone Home Screen apps with unexpected navigator.platform values.
