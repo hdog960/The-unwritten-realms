@@ -3,9 +3,12 @@ import {mobileModelAppConfig,mobileCompletionRequest,MOBILE_MODEL_ID} from "../m
 import {readAttempt,detectInterruptedAttempt,beginAttempt,updateAttempt,endAttempt,AI_ATTEMPT_KEY} from "../ai-attempt.js";
 const store=()=>{const map=new Map();return {getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,String(v))};};
 test("WebLLM 360M has small prefill, context, bounded tokens and fixed model library",()=>{
- const config=mobileModelAppConfig();const model=config.model_list[0];
+ const official={model_list:[{model_id:MOBILE_MODEL_ID,model:"https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC",model_lib:"https://cdn.example.test/SmolLM2-360M-Instruct-q4f16_1_cs1k-webgpu.wasm",overrides:{context_window_size:4096}}]};
+ const config=mobileModelAppConfig(official);const model=config.model_list[0];
  assert.equal(model.model_id,MOBILE_MODEL_ID);
- assert.match(model.model_lib,/SmolLM2-360M-Instruct-q4f16_1-ctx4k_cs1k-webgpu\.wasm/);
+ assert.match(model.model_lib,/SmolLM2-360M-Instruct-q4f16_1_cs1k-webgpu\.wasm/);
+ assert.equal(official.model_list[0].overrides.context_window_size,4096);
+ assert.throws(()=>mobileModelAppConfig({model_list:[]}),/unavailable/);
  assert.equal(model.overrides.context_window_size,1024);
  assert.equal(model.overrides.prefill_chunk_size,128);
  const request=mobileCompletionRequest([{role:"user",content:"Look at the tower"}]);

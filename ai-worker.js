@@ -21,10 +21,10 @@ self.onmessage=async({data})=>{
       if(experimentalMobile){
         // Separate MLC/WebLLM q4f16 runtime rather than ONNX constant folding.
         self.postMessage({type:"stage",message:"GPU preflight passed; loading alternative WebLLM runtime",button:"Loading WebLLM…"});
-        const {CreateMLCEngine}=await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.89/+esm");
+        const {CreateMLCEngine,prebuiltAppConfig}=await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.89/+esm");
         self.postMessage({type:"stage",message:"WebLLM imported; loading compressed model weights",button:"Preparing 360M…"});
         mobileEngine=await CreateMLCEngine(MOBILE_MODEL_ID,{
-          appConfig:mobileModelAppConfig(),
+          appConfig:mobileModelAppConfig(prebuiltAppConfig),
           initProgressCallback:p=>{
             const n=Number(p?.progress);
             self.postMessage({type:"progress",file:String(p?.text||"WebLLM weights").slice(0,100),percent:Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null});
