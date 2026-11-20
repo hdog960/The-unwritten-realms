@@ -30,7 +30,10 @@ function resetChoiceLabels() {
   el("load-ai").textContent = baseLightLabel;
   el("load-ai-enhanced").textContent = baseClearLabel;
   el("load-ai").setAttribute("aria-pressed", String(ready && activeStyle === "normal" && activeModel === "light"));
-  el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (activeStyle === "clear" || activeModel === "enhanced")));
+  el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (activeStyle === "clear" || activeModel === "enhanced") && !(appleMobile && activeModel === "enhanced")));
+  el("load-ai-mobile").textContent = ready && activeModel === "enhanced" ? "Larger AI active · 360M" : "Try larger AI · 360M (experimental)";
+  el("load-ai-mobile").setAttribute("aria-pressed", String(ready && activeModel === "enhanced"));
+  el("load-ai-mobile").disabled = loading || !el("mobile-ai-consent").checked;
 }
 
 let loadWatchdog = null;
@@ -139,6 +142,7 @@ function startAI(choice = "light") {
       el("mode-label").textContent = selected.label;
       setAIStatus(selected.style === "clear"
         ? "Clear writing enabled. It uses the same lightweight AI with shorter, simpler replies. Try your next action. This is not a larger model."
+        : selected.model === "enhanced" ? "Experimental larger AI (360M) is active."
         : "Lightweight AI narration enabled. Try your next action.");
     } else {
       setAIStatus("To change AI model, tap Turn AI off first. Your adventure will stay saved.", true);
@@ -146,7 +150,8 @@ function startAI(choice = "light") {
     return;
   }
   const model = selected.model;
-  const support = checkModelSupport(model, navigator);
+  const mobileExperimental = choice === "mobile-enhanced" && appleMobile && el("mobile-ai-consent").checked;
+  const support = checkModelSupport(model, navigator, { experimentalMobile: mobileExperimental });
   if (!support.allowed) {
     setAIStatus(support.message, true);
     return;
@@ -165,7 +170,8 @@ function startAI(choice = "light") {
   activeStyle = selected.style;
   el("load-ai").disabled = true;
   el("load-ai-enhanced").disabled = true;
-  const loadingButton = choice === "clear" ? el("load-ai-enhanced") : el("load-ai");
+  el("load-ai-mobile").disabled = true;
+  const loadingButton = choice === "mobile-enhanced" ? el("load-ai-mobile") : choice === "clear" ? el("load-ai-enhanced") : el("load-ai");
   loadingButton.textContent = "Loading AI…";
   el("disable-ai").hidden = false;
   setAIStatus(activeModel === "enhanced" ? "Preparing larger AI. This may take time and require significant memory." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
@@ -195,6 +201,7 @@ function startAI(choice = "light") {
         el("mode-label").textContent = selected.label;
         setAIStatus(activeStyle === "clear"
           ? "Clear writing is ON. It uses the small local AI with shorter, simpler replies. Your next typed action will use it."
+          : activeModel === "enhanced" ? "Larger 360M AI loaded. Try an action. Turn it off if the device runs slowly."
           : "Local AI loaded. Type an action to use it. You can switch writing style or turn it off.");
       } else if (data.type === "error") {
         if (data.id != null && awaiting.has(data.id)) {
@@ -210,7 +217,7 @@ function startAI(choice = "light") {
         }
       }
     };
-    worker.postMessage({ type: "init", model: activeModel });
+    worker.postMessage({ type: "init", model: activeModel, mobileExperimental });
   } catch (err) {
     disableAI("Could not create local AI worker: " + err.message);
   }
@@ -274,6 +281,8 @@ el("action").addEventListener("keydown", event => {
 });
 el("load-ai").addEventListener("click", () => startAI("light"));
 el("load-ai-enhanced").addEventListener("click", () => startAI("clear"));
+el("mobile-ai-consent").addEventListener("change", resetChoiceLabels);
+el("load-ai-mobile").addEventListener("click", () => startAI("mobile-enhanced"));
 el("disable-ai").addEventListener("click", () => disableAI());
 for (const button of document.querySelectorAll("[data-panel]")) {
   button.addEventListener("click", () => {
@@ -365,6 +374,7 @@ render();
 if (appleMobile) {
   el("load-ai-enhanced").textContent = baseClearLabel;
   el("model-compatibility").hidden = false;
+  el("mobile-ai-experiment").hidden = false;
 }
 resetChoiceLabels();
 if ("serviceWorker" in navigator) {

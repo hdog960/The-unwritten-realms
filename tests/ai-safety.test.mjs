@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isAppleMobile, checkModelSupport } from "../ai-safety.js";
+import { isAppleMobile, checkModelSupport, resolveAIChoice, compactAIMessages, narrationGenerationOptions } from "../ai-safety.js";
 
 test("iPhone iPad and touch-based iPadOS reject large GPU model", () => {
   for (const d of [
@@ -23,4 +23,27 @@ test("desktop browsers can still attempt larger model",()=>{
 });
 test("model guard never mistakes a non-Apple Android phone for iPhone",()=>{
   assert.equal(checkModelSupport("enhanced",{userAgent:"Mozilla/5.0 Linux; Android 15"}).allowed,true);
+});
+
+test("only explicit opt-in enables larger model on Apple mobile",()=>{
+  for(const userAgent of ["iPhone","iPad"]){
+    const d={userAgent};
+    assert.equal(checkModelSupport("enhanced",d).allowed,false);
+    assert.equal(checkModelSupport("enhanced",d,{experimentalMobile:false}).allowed,false);
+    assert.equal(checkModelSupport("enhanced",d,{experimentalMobile:true}).allowed,true);
+    assert.equal(resolveAIChoice("clear",d).model,"light");
+    assert.equal(resolveAIChoice("mobile-enhanced",d).model,"enhanced");
+  }
+});
+test("larger mobile context and generation remain bounded without mutating prompts",()=>{
+  const input=[{role:"system",content:"S".repeat(3000)},{role:"user",content:"U".repeat(3000)}];
+  const result=compactAIMessages(input,true);
+  assert.equal(result[0].content.length,900);
+  assert.equal(result[1].content.length,1300);
+  assert.equal(input[0].content.length,3000);
+  assert.strictEqual(compactAIMessages(input,false),input);
+  assert.deepEqual(narrationGenerationOptions("enhanced","normal",true),
+    {max_new_tokens:64,do_sample:false,repetition_penalty:1.12,return_full_text:false});
+  assert.equal(narrationGenerationOptions("light","normal",false).max_new_tokens,105);
+  assert.equal(narrationGenerationOptions("light","clear",false).max_new_tokens,75);
 });
