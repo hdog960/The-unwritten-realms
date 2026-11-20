@@ -43,7 +43,36 @@ export function recap(s) {
   const recent = s.journal.slice(-3).join(" ");
   return "You are at " + place + ". " + discoveries + " " + recent + " Next: " + questStatus(s);
 }
-const choice = (s, i) => s.split(" ").filter(Boolean)[i % Math.max(1, s.split(" ").filter(Boolean).length)] || "shadow";
+function freeformOutcome(s, text) {
+  const place = location(s);
+  const details = {
+    crossroads: "The misty valley, ruined bridge and pine trail remain open to you.",
+    valley: "The bell sounds again near the flooded chapel.",
+    bridge: "The ravine roars below, and the far road leads toward the keep.",
+    forest: "Smoke rises from a camp, and tracks lead up to a watchtower.",
+    chapel: "The flooded altar and silent bell still hold clues.",
+    fortress: "The sealed hatch beneath the throne is worth investigating.",
+    camp: "Mara watches the treeline and tends the last embers.",
+    tower: "The brass star chart and signal lantern wait inside.",
+    vault: "The three stone rings surround the moon beacon."
+  };
+  const lead = /\b(sing|shout|yell|whistle|call|hum)\b/.test(text)
+    ? "You raise your voice. The sound carries through " + place + ", but no one answers."
+    : /\b(dig|bury|scratch|excavate)\b/.test(text)
+      ? "You scrape at the ground. The soil gives way a little, but you uncover nothing useful."
+      : /\b(draw|sketch|write|paint|carve)\b/.test(text)
+        ? "You mark your idea on a nearby surface. The mark remains, but it has no immediate magical effect."
+        : /\b(climb|jump|leap|swing|balance)\b/.test(text)
+          ? "You test your footing and look for a safe route. Nothing here leads you out of " + place + " yet."
+          : /\b(attack|strike|fight|shoot|kick|punch)\b/.test(text)
+            ? "You ready yourself for a fight, but there is no clear target for that move."
+            : /\b(talk|ask|speak|bargain|persuade)\b/.test(text)
+              ? "You speak into the quiet. There is no one close enough to answer from here."
+              : /\b(go|move|wander|walk|run|sneak|travel|enter)\b/.test(text)
+                ? "You look for a route, but cannot find a clear way to reach that destination from " + place + "."
+                : "You try your idea, but nothing definite changes in the world yet.";
+  return lead + " " + details[s.scene];
+}
 export function newGame() {
   return { version: VERSION, turn: 0, scene: "crossroads", hp: 30, maxHp: 30, gold: 12,
     inventory: ["Rusty sword", "Travel cloak", "Dried rations"],
@@ -230,7 +259,7 @@ function resolveSpecial(s, t, context) {
       return "You set the silver charm into the lens and turn the rings toward the third moon. Silver light spreads through the vault. The bell stops, the black pool clears, and dawn finally reaches the valley. You restored the moon beacon.";
     }
   }
-  if (/\b(hide|crouch|sneak|duck)\b/.test(t) && sneak) return "You lower yourself behind nearby cover and listen. For now, nothing notices you. " + look(s);
+  if (/\b(hide|crouch|duck)\b/.test(t) && sneak) return "You lower yourself behind nearby cover and listen. For now, nothing notices you. " + look(s);
   if (/\b(listen|smell|touch|feel)\b/.test(t) && !movement) {
     const sensed = {
       crossroads: "Damp bark and distant rain surround you. The bell rings again, three deliberate notes.",
@@ -259,7 +288,7 @@ export function applyAction(previous, input) {
   let outcome = "";
   let freeform = false;
   const back = has(t, /\b(back|return|leave|retreat|go home|turn around)\b/);
-  const movement = has(t, /\b(go|walk|head|travel|move|follow|approach|cross|enter|take the path|explore|run|climb|visit)\b/);
+  const movement = has(t, /\b(go|walk|head|travel|move|follow|approach|cross|enter|take the path|explore|run|climb|visit|sneak|creep|slip|wander|venture|stroll|hike|step|make my way)\b/);
   const gaze = has(t, /\b(look|inspect|search|examine|study|listen|observe|investigate|check|scan)\b/);
   const fight = has(t, /\b(attack|fight|strike|stab|slash|shoot|fire|swing|kill|hit|charge|throw|lunge)\b/);
   const talk = has(t, /\b(talk|speak|ask|say|tell|negotiate|bargain|bribe|pay|offer|greet)\b/);
@@ -337,10 +366,8 @@ export function applyAction(previous, input) {
     outcome = arriving(s) + " You notice tracks in the wet earth and the lingering sense that your choices here will matter.";
   } else {
     freeform = true;
-    // Arbitrary player text is accepted, but this rules fallback cannot interpret every intention.
-    const detail = choice(t.replace(/[^a-z ]/g,""), s.turn);
-    outcome = "You attempt it, testing the world around you. The air shifts around your " + detail + ", and a small consequence ripples outward. " +
-      arriving(s) + " Your approach is possible, but the outcome remains uncertain; try describing a more specific action.";
+    // Actions outside the authored world remain honest and useful rather than random gibberish.
+    outcome = freeformOutcome(s,t);
   }
   if (s.flags.chapelRelic) log(s,"You found a silver moon charm in the Sunken Chapel.");
   if (s.flags.hunterMap) log(s,"Mara shared a charcoal map of the old kingdom.");
