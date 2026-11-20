@@ -64,6 +64,17 @@ try {
   assert.match(await page.locator("#turn-text").innerText(),/TURN 0/);
   await page.locator("#import-save").setInputFiles({name:"unwritten-backup.json",mimeType:"application/json",buffer:Buffer.from(backup)});
   assert.match(await page.locator("#turn-text").innerText(),/TURN 2/);
+  await page.evaluate(() => {
+    const key="unwritten-realms-save-v1";
+    const saved=JSON.parse(localStorage.getItem(key));
+    saved.history.at(-1).text="The moon is made of confusing spaghetti.";
+    localStorage.setItem(key,JSON.stringify(saved));
+  });
+  await page.reload({waitUntil:"domcontentloaded"});
+  assert.equal(await page.locator("#clear-last").isDisabled(),false);
+  await page.locator("#clear-last").click();
+  assert.match(await page.locator("#story-message").innerText(),/verified game narration restored/);
+  assert.ok(!(await page.locator("#story").innerText()).includes("confusing spaghetti"));
   await page.locator('[data-panel="ai"]').click();
   await page.locator("#load-ai-enhanced").click();
   assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
