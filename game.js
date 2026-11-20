@@ -305,7 +305,7 @@ function resolveSpecial(s, t, context) {
 export function applyAction(previous, input) {
   const raw = String(input || "").trim().slice(0, 400);
   if (!raw) return null;
-  const s = loadGame(previous);
+  const s = loadGame(JSON.stringify(previous));
   if (!s) throw new Error("Invalid game state");
   const t = raw.toLowerCase();
   const prior = s.scene;
