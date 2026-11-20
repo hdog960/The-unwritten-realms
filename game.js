@@ -145,6 +145,24 @@ function resolveSpecial(s, t, context) {
   if (/\b(recap|what happened|remind me|summari[sz]e)\b/.test(t)) return recap(s);
   if (/^(?:help|what can i do|what are my options)\??$/.test(t))
     return "You can explore, inspect objects, talk, bargain, sneak, fight, rest or use items. Describe your action in your own words. " + questStatus(s);
+  // Direct return travel should work after endings and without requiring exact "go back" phrasing.
+  if (movement) {
+    const routes = {
+      valley: [{ match: /\b(road|crossroads|hollow road)\b/, next: "crossroads" }],
+      bridge: [{ match: /\b(road|crossroads|hollow road)\b/, next: "crossroads" }],
+      forest: [{ match: /\b(road|crossroads|hollow road)\b/, next: "crossroads" }],
+      chapel: [{ match: /\b(valley|outside|entrance)\b/, next: "valley" }],
+      camp: [{ match: /\b(forest|thornwood|woods)\b/, next: "forest" }],
+      tower: [{ match: /\b(forest|thornwood|woods)\b/, next: "forest" }],
+      fortress: [{ match: /\b(bridge|broken bridge)\b/, next: "bridge" }],
+      vault: [{ match: /\b(keep|fortress|upstairs|stairs|above)\b/, next: "fortress" }]
+    };
+    for (const route of routes[s.scene] || []) {
+      if (route.match.test(t)) {
+        return go(s, route.next, "You travel back to " + SCENES[route.next].name + ". " + look({ ...s, scene: route.next }));
+      }
+    }
+  }
   if (s.scene === "crossroads" && /\b(listen|bell|hear)\b/.test(t) && !movement) {
     s.flags.bellHeard = true;
     return "You stop and listen. The bell sounds three times from the valley. The third note has a strange echo, as though another bell answers from below the earth.";
@@ -241,6 +259,7 @@ function resolveSpecial(s, t, context) {
     }
   }
   if (s.scene === "vault") {
+    if (s.flags.ending && /\b(back|return|leave|retreat|go up)\b/.test(t)) return null;
     if (s.flags.ending) return "The moon beacon's fate is decided. " + questStatus(s) + " You can return to the keep or continue exploring.";
     if (/\b(inscription|read|study|examine|inspect|runes?|rings?|alignment|symbols?|walls?)\b/.test(t) && (gaze || /\b(read|study|examine|inspect)\b/.test(t))) {
       s.flags.alignmentLearned = true;
