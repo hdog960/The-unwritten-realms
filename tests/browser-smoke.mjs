@@ -36,7 +36,7 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.1/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.2/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
@@ -88,14 +88,19 @@ try {
   // iPhone experimental model must not start without active checkbox consent.
   const experiment=page.locator("#load-ai-mobile");
   assert.equal(await experiment.isVisible(),true);
-  assert.equal(await experiment.isDisabled(),true);
+  assert.equal(await experiment.isEnabled(),true);
+  assert.equal(await page.locator("#mobile-ai-consent").isChecked(),false);
+  const noConsentSave=await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1"));
+  await experiment.click();
+  assert.match(await page.locator("#ai-status").innerText(),/Acknowledge the experimental 360M warning/);
+  assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),noConsentSave);
   await page.locator("#mobile-ai-consent").check();
   assert.equal(await experiment.isEnabled(),true);
   const saveBefore=await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1"));
   await experiment.click();
   assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.1/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.2/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);
@@ -133,7 +138,10 @@ try {
     assert.equal(await gatedPage.evaluate(()=>navigator.maxTouchPoints),0);
     assert.equal(await gatedPage.locator("#mobile-ai-experiment").isVisible(),true);
     assert.match(await gatedPage.locator("#load-ai-enhanced").innerText(),/same small AI/);
-    assert.equal(await gatedPage.locator("#load-ai-mobile").isDisabled(),true);
+    assert.equal(await gatedPage.locator("#load-ai-mobile").isEnabled(),true);
+    assert.equal(await gatedPage.locator("#mobile-ai-consent").isChecked(),false);
+    await gatedPage.locator("#load-ai-mobile").click();
+    assert.match(await gatedPage.locator("#ai-status").innerText(),/Acknowledge the experimental 360M warning/);
     assert.equal(await gatedPage.evaluate(()=>window.__workerCreated||0),0);
     // On a desktop-looking standalone viewport, 'Clearer writing' MUST stay small.
     await gatedPage.locator("#load-ai-enhanced").click();
@@ -141,7 +149,11 @@ try {
     assert.equal(init.model,"light");
     assert.notEqual(init.mobileExperimental,true);
     await gatedPage.locator("#disable-ai").click();
-    await gatedPage.locator("#mobile-ai-consent").check();
+    // Emulate Safari: checkbox visually checked without the usual change event.
+    // The button must still work because the click handler reads .checked itself.
+    await gatedPage.locator("#mobile-ai-consent").evaluate(el=>{el.checked=true;});
+    assert.equal(await gatedPage.locator("#mobile-ai-consent").isChecked(),true);
+    assert.equal(await gatedPage.locator("#load-ai-mobile").isEnabled(),true);
     await gatedPage.locator("#load-ai-mobile").click();
     init=await gatedPage.evaluate(()=>window.__workerInit);
     assert.equal(init.type,"init");
@@ -155,7 +167,9 @@ try {
     await gatedPage.reload({waitUntil:"domcontentloaded"});
     assert.equal(await gatedPage.locator("#mobile-ai-experiment").isVisible(),true);
     assert.equal(await gatedPage.locator("#mobile-ai-consent").isChecked(),false);
-    assert.equal(await gatedPage.locator("#load-ai-mobile").isDisabled(),true);
+    assert.equal(await gatedPage.locator("#load-ai-mobile").isEnabled(),true);
+    await gatedPage.locator("#load-ai-mobile").click();
+    assert.match(await gatedPage.locator("#ai-status").innerText(),/Acknowledge the experimental 360M warning/);
     assert.equal(await gatedPage.evaluate(()=>window.__workerCreated||0),0);
   }finally{await gatedContext.close();}
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
