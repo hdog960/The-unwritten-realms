@@ -34,7 +34,7 @@ const aiDevice = {
   maxTouchPoints: navigator.maxTouchPoints,
   mobileExperience
 };
-const MOBILE_AI_BUILD = "v0.6.4";
+const MOBILE_AI_BUILD = "v0.6.5";
 let mobileAttempt = false;
 const baseLightLabel = "Lightweight AI · ~118 MB";
 const baseClearLabel = mobileExperience ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
@@ -211,7 +211,7 @@ function startAI(choice = "light") {
   el("disable-ai").hidden = false;
   setAIStatus(activeModel === "enhanced" ? "360M tap accepted. Starting the isolated worker; checking WebGPU before any download." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
   try {
-    worker = new Worker("./ai-worker.js?v=064", { type: "module" });
+    worker = new Worker("./ai-worker.js?v=065", { type: "module" });
     const activeWorker = worker;
     worker.onmessageerror = () => { if (worker === activeWorker) disableAI("WORKER-02: AI worker message failed. Your story engine still works."); };
     worker.onerror = event => {

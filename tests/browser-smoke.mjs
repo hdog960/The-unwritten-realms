@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, extname } from "node:path";
 import { chromium } from "playwright";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist");
 const types = { ".html":"text/html", ".js":"text/javascript", ".json":"application/json", ".webmanifest":"application/manifest+json", ".svg":"image/svg+xml", ".css":"text/css" };
 const server=createServer(async (req,res)=>{
   const path = decodeURIComponent(new URL(req.url,"http://localhost").pathname);
@@ -36,9 +36,9 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.4/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.5/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
-  assert.match(await page.locator("#mobile-ai-status").innerText(),/v0\.6\.4 controls connected/);
+  assert.match(await page.locator("#mobile-ai-status").innerText(),/v0\.6\.5 controls connected/);
   assert.equal(await page.locator("#repair-home-app").isVisible(),false);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
@@ -104,7 +104,7 @@ try {
   assert.match(await page.locator("#ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.match(await page.locator("#mobile-ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.4/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.5/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);
@@ -117,16 +117,16 @@ try {
   try {
     const repairPage=await repairContext.newPage();
     let blockModule=true;
-    await repairPage.route("**/app.js?v=064",route=>blockModule?route.abort():route.continue());
+    await repairPage.route("**/app.js?v=065",route=>blockModule?route.abort():route.continue());
     await repairPage.goto(origin+"/",{waitUntil:"domcontentloaded"});
-    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/v0\.6\.4/);
+    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/v0\.6\.5/);
     await repairPage.evaluate(data=>localStorage.setItem("unwritten-realms-save-v1",data),backup);
     await repairPage.locator("#load-ai-mobile").click();
     assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/STARTUP-01/);
     assert.equal(await repairPage.locator("#repair-home-app").isVisible(),true);
     blockModule=false;
     await repairPage.locator("#repair-home-app").click();
-    await repairPage.waitForURL(/app-refresh=064/);
+    await repairPage.waitForURL(/app-refresh=065/);
     await repairPage.waitForFunction(()=>document.querySelector("#mobile-ai-status")?.textContent.includes("controls connected"));
     assert.match(await repairPage.locator("#turn-text").innerText(),/TURN 2/);
     assert.equal(await repairPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);

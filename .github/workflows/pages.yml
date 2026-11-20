@@ -27,12 +27,12 @@ jobs:
       - name: Check game rules
         run: npm test
 
-      - name: Prepare static website
+      - name: Verify the exact tested Pages artifact
         run: |
-          mkdir -p dist
-          cp index.html app.js game.js ai-worker.js sw.js manifest.webmanifest icon.svg dist/
-          touch dist/.nojekyll
           test -s dist/index.html
+          test -s dist/narration.js
+          test -s dist/ai-safety.js
+          node scripts/build-site.mjs
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
