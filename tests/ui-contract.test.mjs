@@ -13,7 +13,7 @@ test("release assets are explicitly cached for offline startup",()=>{
     assert.ok(sw.includes(name),name+" not cached");
   }
   assert.match(sw,/unwritten-realms-shell-v6/);
-  assert.match(html,/Prototype v0\.6 preview/);
+  assert.match(html,/Prototype v0\.6/);
 });
 test("saved-adventure key and schema remain compatible",()=>{
   const app=file("app.js"),game=file("game.js");

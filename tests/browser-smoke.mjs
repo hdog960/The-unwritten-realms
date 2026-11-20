@@ -36,7 +36,7 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.6 preview/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
@@ -95,7 +95,7 @@ try {
   await experiment.click();
   assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
-  assert.match(await page.locator(".footer").innerText(),/v0\.6 preview/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);

@@ -10,7 +10,7 @@ A free, mobile-first, text-based fantasy RPG designed for GitHub Pages. This pro
 
 GitHub Pages should be configured for **GitHub Actions** (the repository has an explicit deploy workflow). Changes may take a little time to publish after a commit.
 
-## Prototype v0.4
+## Prototype v0.6
 
 - Type custom actions instead of choosing from mandatory menus.
 - Explore the Hollow Road, Bell-Mist Valley, Sunken Chapel, Broken Bridge, Ashen Keep, Thornwood and Hunter's Camp.
@@ -74,6 +74,6 @@ The iPhone button now **works** rather than silently blocking a model: it select
 
 Complete first-story mystery with the third moon, a hunter named Mara, a watchtower, a moon vault, three distinct endings, paths around the ogre, more item use and clue gathering. Adds a persistent quest journal, discovered-location map, recap, large-text mode, one-turn undo and validated save restore. Existing save key and schema stay unchanged.
 
-## v0.6 Mobile AI experimental work (isolated draft)
+## v0.6 Mobile AI (experimental iPhone opt-in)
 
-An opt-in 360M on-device narrator is available to try on newer iPhones, including 17 Pro Max. It does not automatically download or load, and defaults to the established lightweight 135M and clear-writing choices. A WebGPU adapter shader-f16 preflight runs before third-party code or model downloads; local prompts and output tokens are bounded. The user must explicitly acknowledge that Safari might still terminate the entire tab without throwing an error. This is not a guarantee of safety or compatibility; iPhone 17 Pro Max physical testing is mandatory before release. The game save key `unwritten-realms-save-v1` and schema 1, offline shell, no-paid-AI policy, and working v0.5 production remain unchanged.
+An opt-in 360M on-device narrator is available to try on newer iPhones, including 17 Pro Max. It does not automatically download or load, and defaults to the established lightweight 135M and clear-writing choices. A WebGPU adapter shader-f16 preflight runs before third-party code or model downloads; local prompts and output tokens are bounded. The user must explicitly acknowledge that Safari might still terminate the entire tab without throwing an error. This is not a guarantee of safety or compatibility: physical iPhone 17 Pro Max testing of the 360M model remains outstanding even with the opt-in available to the user. The game save key `unwritten-realms-save-v1` and schema 1, offline shell, no-paid-AI policy, and existing installed Home Screen identity remain unchanged. This v0.6 release is opt-in for the larger AI, and the working deterministic story engine remains available.
