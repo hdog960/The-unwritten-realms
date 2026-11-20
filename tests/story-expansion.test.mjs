@@ -128,6 +128,15 @@ test("new locations have meaningful exploration hints", () => {
   assert.equal(game.scene,"fortress");
   assert.ok(prompts(game).some(x=>/vault/.test(x)));
 });
+test("canonical game narration survives save reload and remains available for correction",()=>{
+  const game = move(newGame(),"I go right toward the bridge");
+  const last = game.history.at(-1);
+  assert.equal(last.canonical,last.text);
+  last.text = "The moon is made of cheese, and nothing means anything.";
+  const loaded = loadGame(JSON.stringify(game));
+  assert.equal(loaded.history.at(-1).canonical,"You approach the bridge. A huge moss-backed ogre bars the old bridge. Its iron-bound club scrapes the stones. Beyond it stands the Ashen Keep.");
+  assert.notEqual(loaded.history.at(-1).text,loaded.history.at(-1).canonical);
+});
 test("unrecognized actions still retain honest bounded outcomes", () => {
   const result=applyAction(newGame(),"I paint a dragon on the clouds");
   assert.equal(result.freeform,true);
