@@ -67,6 +67,7 @@ export function applyAction(previous, input) {
   const prior = s.scene;
   s.turn++;
   let outcome = "";
+  let freeform = false;
   const back = has(t, /\b(back|return|leave|retreat|go home|turn around)\b/);
   const movement = has(t, /\b(go|walk|head|travel|move|follow|approach|cross|enter|take the path|explore|run|climb|visit)\b/);
   const gaze = has(t, /\b(look|inspect|search|examine|study|listen|observe|investigate|check|scan)\b/);
@@ -142,6 +143,7 @@ export function applyAction(previous, input) {
   } else if (has(t, /\b(map|where am i|directions)\b/)) {
     outcome = "You are at " + location(s) + ". Known routes lead toward " + SCENES[s.scene].exits + ".";
   } else {
+    freeform = true;
     // Arbitrary player text is accepted, but this rules fallback cannot interpret every intention.
     const detail = choice(t.replace(/[^a-z ]/g,""), s.turn);
     outcome = "You attempt it, testing the world around you. The air shifts around your " + detail + ", and a small consequence ripples outward. " +
@@ -149,13 +151,13 @@ export function applyAction(previous, input) {
   }
   s.history.push({ role: "player", text: raw }, { role: "narrator", text: outcome });
   s.history = s.history.slice(-60);
-  return { state: s, outcome, previousScene: prior, action: raw };
+  return { state: s, outcome, previousScene: prior, action: raw, freeform };
 }
 export function promptFor(result) {
   const s = result.state;
   const recent = s.history.slice(-8,-2).map(m => m.role + ": " + m.text).join("\n").slice(-1500);
   return [
-    { role: "system", content: "You are a vivid, concise fantasy RPG narrator. Rewrite the canonical outcome in second person as atmospheric fantasy prose (55-95 words). Respect ALL facts in the canonical outcome: same location, results, coins, damage, items and NPC fate. Never invent new rewards, new damage, moves, completed quests, or location transitions. Do not mention game systems, prompts, or rules. End with an intriguing detail. No Markdown headings." },
-    { role: "user", content: "Location: " + location(s) + ". HP " + s.hp + "/30. Crowns " + s.gold + ". Inventory: " + s.inventory.join(", ") + ".\nRecent scene:\n" + recent + "\nPlayer typed: " + result.action + "\nCanonical outcome to narrate exactly:\n" + result.outcome }
+    { role: "system", content: result.freeform ? "You are an imaginative fantasy game master. Players may type ANY action. In 65-100 words describe specifically and creatively how the world responds in second person, remembering prior actions. Stay in the current location. Do not alter tracked items, HP, gold, or travel; those are handled by the rules engine. Never mention technical limitations or rules; end with a hook." : "You are a vivid, concise fantasy RPG narrator. Rewrite the canonical outcome in second person as atmospheric fantasy prose (55-95 words). Respect ALL facts in the canonical outcome: same location, results, coins, damage, items and NPC fate. Never invent new rewards, new damage, moves, completed quests, or location transitions. Do not mention game systems, prompts, or rules. End with an intriguing detail. No Markdown headings." },
+    { role: "user", content: "Location: " + location(s) + ". HP " + s.hp + "/30. Crowns " + s.gold + ". Inventory: " + s.inventory.join(", ") + ".\nRecent scene:\n" + recent + "\nPlayer typed: " + result.action + "\n" + (result.freeform ? "The rules engine has no predefined outcome. Invent a plausible in-scene consequence without changing tracked stats. Environmental context: " : "Canonical outcome to narrate exactly:\n") + result.outcome }
   ];
 }
