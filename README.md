@@ -73,3 +73,7 @@ The iPhone button now **works** rather than silently blocking a model: it select
 ## v0.5 adventure update
 
 Complete first-story mystery with the third moon, a hunter named Mara, a watchtower, a moon vault, three distinct endings, paths around the ogre, more item use and clue gathering. Adds a persistent quest journal, discovered-location map, recap, large-text mode, one-turn undo and validated save restore. Existing save key and schema stay unchanged.
+
+## v0.6 Mobile AI experimental work (isolated draft)
+
+An opt-in 360M on-device narrator is available to try on newer iPhones, including 17 Pro Max. It does not automatically download or load, and defaults to the established lightweight 135M and clear-writing choices. A WebGPU adapter shader-f16 preflight runs before third-party code or model downloads; local prompts and output tokens are bounded. The user must explicitly acknowledge that Safari might still terminate the entire tab without throwing an error. This is not a guarantee of safety or compatibility; iPhone 17 Pro Max physical testing is mandatory before release. The game save key `unwritten-realms-save-v1` and schema 1, offline shell, no-paid-AI policy, and working v0.5 production remain unchanged.

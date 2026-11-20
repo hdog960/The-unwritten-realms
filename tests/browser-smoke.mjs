@@ -36,7 +36,7 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.5/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6 preview/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
@@ -85,7 +85,17 @@ try {
   }
   await page.locator("#load-ai-enhanced").click();
   assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
-  assert.match(await page.locator(".footer").innerText(),/v0\.5/);
+  // iPhone experimental model must not start without active checkbox consent.
+  const experiment=page.locator("#load-ai-mobile");
+  assert.equal(await experiment.isVisible(),true);
+  assert.equal(await experiment.isDisabled(),true);
+  await page.locator("#mobile-ai-consent").check();
+  assert.equal(await experiment.isEnabled(),true);
+  const saveBefore=await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1"));
+  await experiment.click();
+  assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
+  assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6 preview/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);

@@ -61,6 +61,11 @@
     .statusline{font:12px/1.5 system-ui,sans-serif;color:#aebdc4;min-height:20px;margin-top:10px}
     .ai-choices{display:flex;gap:9px;flex-wrap:wrap;margin:13px 0}
     .ai-choices button{min-height:42px}
+    .ai-experiment{border:1px solid #8d7655;border-radius:12px;margin:12px 0;padding:12px;min-width:0}
+    .ai-experiment legend{color:var(--gold);padding:0 6px;font:600 13px system-ui,sans-serif}
+    .ai-experiment label{display:flex;gap:9px;align-items:flex-start;font:13px/1.5 system-ui,sans-serif;color:var(--ink);margin:12px 0}
+    .ai-experiment input{width:18px;height:18px;flex-shrink:0;accent-color:var(--gold)}
+    .ai-experiment button{min-height:44px;width:100%}
     .footer{font:11px/1.6 system-ui,sans-serif;color:#777f89;text-align:center;padding:14px}
     .warning{color:#e8b47b!important}
     .readable .entry.narrator{font-size:19px;line-height:1.9}
@@ -114,13 +119,19 @@
   </nav>
   <section id="panel-ai" class="panel">
     <h3>✦ Optional on-device AI</h3>
-    <p><strong>Choose a free narrator.</strong> On iPhone, both options use the same lightweight model; Clearer writing uses shorter prompts and simpler sentence settings. On desktop, the second option tries a larger experimental model. No paid API is used.</p>
+    <p><strong>Choose a free narrator.</strong> The standard iPhone options use the small model; a separate, risk-acknowledged experimental 360M option is below. Desktop can select 360M directly. No paid API is used.</p>
     <div class="ai-choices">
       <button class="tool" type="button" id="load-ai">Lightweight AI · ~118 MB</button>
       <button class="primary" type="button" id="load-ai-enhanced">Larger AI · ~272 MB (desktop)</button>
       <button class="tool" type="button" id="disable-ai" hidden>Turn AI off</button>
     </div>
-    <p id="model-compatibility" class="warning" hidden>The larger 360M model remains blocked on iPhone to prevent crashes. Clearer writing uses the same smaller 135M AI with simpler responses—not a more powerful model. Tap it to load or switch writing style. Your adventure save remains intact.</p>
+    <p id="model-compatibility" class="warning" hidden>Clearer writing still uses the smaller 135M model. The 360M model is only available through the separate experimental option, after you accept the risk.</p>
+    <fieldset id="mobile-ai-experiment" class="ai-experiment" hidden>
+      <legend>Experimental 360M AI for newer iPhones</legend>
+      <p>Designed for devices like iPhone 17 Pro Max. Safari can still close or crash under memory pressure: JavaScript cannot prevent this. Export a save backup, close other tabs, and use Wi-Fi. Weights download: approximately 272 MB; runtime memory is higher. Never starts automatically.</p>
+      <label><input id="mobile-ai-consent" type="checkbox"> I understand this experiment may crash Safari; load only when I explicitly tap the button.</label>
+      <button class="tool" id="load-ai-mobile" type="button" disabled>Try larger AI · 360M (experimental)</button>
+    </fieldset>
     <p>Model downloads only start when you tap a supported option. Extra support files also download. Neither model is guaranteed to understand every action. If its reply looks malformed, the game uses its regular narration instead. Your existing save is kept.</p>
     <div class="statusline" id="ai-status" role="status">AI off. The rule-based story engine is ready to play.</div>
   </section>
@@ -141,7 +152,7 @@
   </section>
   <section id="panel-map" class="panel" hidden><h3>Explored places</h3><div id="map-info"></div></section>
   <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try. Explore the roads, chapel, forest, watchtower and keep. Investigate clues and choose what to do about the moon beacon. Important choices stay in your journal.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
-  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.5 · Free to play · No API keys</p>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6 preview · Free to play · No API keys</p>
 </main>
 <script type="module" src="./app.js"></script>
 </body>
