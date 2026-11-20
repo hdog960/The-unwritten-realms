@@ -122,11 +122,6 @@ export function applyAction(previous, input) {
   } else if (s.scene === "camp" && talk) {
     s.flags.campMet = true;
     outcome = "The hunter studies you by firelight. 'The keep has been empty for a century,' she says. 'So why have its windows begun to glow?' She offers you a bowl of stew.";
-  } else if (rest) {
-    const gain = Math.min(5, s.maxHp - s.hp); s.hp += gain;
-    outcome = gain ? "You pause, eat a little dried ration, and tend your wounds. You recover " + gain + " health. The world does not stop moving around you." : "You take a moment to catch your breath. You are already at full health.";
-  } else if (gaze) {
-    outcome = arriving(s) + " You notice tracks in the wet earth and the lingering sense that your choices here will matter.";
   } else if (s.scene === "valley" && has(t, /\b(reeds|water|marsh|pond|pool|mud)\b/)) {
     outcome = "You part the reeds and uncover three old crowns in a cracked clay bowl. The mist briefly forms the shape of a woman before drifting apart.";
     if (!s.flags.reedsSearched) { s.gold += 3; s.flags.reedsSearched = true; }
@@ -142,6 +137,11 @@ export function applyAction(previous, input) {
     outcome = "You turn slowly. A pair of pale eyes watches from the ferns. A deer with antlers braided in ivy steps into the road, then vanishes between the trees without a sound.";
   } else if (has(t, /\b(map|where am i|directions)\b/)) {
     outcome = "You are at " + location(s) + ". Known routes lead toward " + SCENES[s.scene].exits + ".";
+  } else if (rest) {
+    const gain = Math.min(5, s.maxHp - s.hp); s.hp += gain;
+    outcome = gain ? "You pause, eat a little dried ration, and tend your wounds. You recover " + gain + " health. The world does not stop moving around you." : "You take a moment to catch your breath. You are already at full health.";
+  } else if (gaze) {
+    outcome = arriving(s) + " You notice tracks in the wet earth and the lingering sense that your choices here will matter.";
   } else {
     freeform = true;
     // Arbitrary player text is accepted, but this rules fallback cannot interpret every intention.
