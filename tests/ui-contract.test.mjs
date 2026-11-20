@@ -25,7 +25,7 @@ test("saved-adventure key and schema remain compatible",()=>{
 });
 test("clearing text option and the old AI compatibility guard remain in place",()=>{
   const html=file("index.html"),app=file("app.js");
-  for(const name of ["text-size","undo-last","import-save","recap-result","chapter-label","panel-map"]) assert.ok(html.includes('id="'+name+'"'));
+  for(const name of ["text-size","undo-last","import-save","recap-result","chapter-label","panel-map","clear-last","story-message"]) assert.ok(html.includes('id="'+name+'"'));
   assert.ok(app.includes("resolveAIChoice"));
   assert.ok(app.includes("clearLoadWatchdog"));
 });
