@@ -79,7 +79,10 @@ try {
   await page.locator("#clear-last").click();
   assert.match(await page.locator("#story-message").innerText(),/verified game narration restored/);
   assert.ok(!(await page.locator("#story").innerText()).includes("confusing spaghetti"));
-  await page.locator('[data-panel="ai"]').click();
+  // Panel buttons toggle closed when already open; only open AI if hidden.
+  if (!(await page.locator("#load-ai-enhanced").isVisible())) {
+    await page.locator('[data-panel="ai"]').click();
+  }
   await page.locator("#load-ai-enhanced").click();
   assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
   assert.match(await page.locator(".footer").innerText(),/v0\.5/);
