@@ -70,3 +70,29 @@ test("prompts and local model context are derived from gameplay", () => {
   assert.equal(chat[0].role, "system");
   assert.ok(chat[1].content.includes("I head toward the bridge"));
 });
+
+test("reeds can be searched exactly once and yield three crowns", () => {
+  let s = act(newGame(), "I go left toward the valley");
+  s = act(s, "I search the reeds");
+  assert.equal(s.gold, 15);
+  s = act(s, "I search the reeds again");
+  assert.equal(s.gold, 15);
+});
+test("chapel inspection reveals discoverable relic", () => {
+  let s = act(newGame(), "I follow the bell");
+  s = act(s, "enter the chapel");
+  s = act(s, "inspect the altar");
+  assert.ok(s.history.at(-1).text.includes("silver moon charm"));
+});
+test("hunter stew heals eight without exceeding maximum", () => {
+  let s = act(newGame(), "go into the forest");
+  s = act(s, "follow the smoke to camp");
+  s.hp = 14;
+  s = act(s, "eat some stew");
+  assert.equal(s.hp, 22);
+});
+test("unknown free-form input gets experimental improvisation prompt", () => {
+  const r = applyAction(newGame(), "I paint a dragon with starlight on my shield");
+  assert.equal(r.freeform, true);
+  assert.ok(promptFor(r)[0].content.includes("ANY action"));
+});
