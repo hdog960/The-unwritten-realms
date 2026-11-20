@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101319">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Unwritten Realms">
+  <meta name="description" content="A free, open-ended fantasy text RPG with an optional on-device AI narrator.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <title>The Unwritten Realms — Your words, your legend</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b0e14;--panel:#151b24;--line:#3d3940;--gold:#e0bd7d;--muted:#a5abb6;--ink:#f2eee8;--red:#d56f66;--green:#8ebda2}
+    *{box-sizing:border-box}html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Georgia,'Times New Roman',serif;color:var(--ink);background:radial-gradient(ellipse 90% 470px at 50% -130px,#323142 0%,transparent 90%),linear-gradient(#0f141d,#090b0e);min-height:100vh}
+    button,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:wait;opacity:.55}
+    .shell{max-width:870px;margin:auto;padding:20px 18px max(40px,env(safe-area-inset-bottom))}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:20px;border-bottom:1px solid #6a59473d}
+    .brandmark{width:40px;height:40px;display:grid;place-items:center;border:1px solid #8a7653;background:linear-gradient(150deg,#383224,#1b1b21);border-radius:12px;color:var(--gold);font-size:23px}
+    .brand{display:flex;align-items:center;gap:12px}.brand small{display:block;text-transform:uppercase;letter-spacing:.18em;font:600 10px system-ui,sans-serif;color:var(--gold);margin-bottom:3px}
+    .brand strong{font-size:17px;letter-spacing:.02em}
+    .status{display:flex;align-items:center;gap:7px;color:var(--muted);font:600 11px system-ui,sans-serif;border:1px solid #494b54;border-radius:999px;padding:8px 10px;white-space:nowrap}
+    .dot{height:7px;width:7px;border-radius:99px;background:#8ebda2;box-shadow:0 0 9px #7ac5a882}
+    .eyebrow{font:600 11px system-ui,sans-serif;letter-spacing:.2em;color:var(--gold);text-transform:uppercase}
+    .intro{padding:27px 0 18px;text-align:center}.intro h1{font-size:clamp(34px,7.5vw,63px);margin:11px 0 8px;line-height:1.05;font-weight:normal;letter-spacing:.01em}
+    .intro p{font-size:16px;color:#c2b5a5;font-style:italic;margin:0}
+    .stats{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;margin:21px 0}
+    .stat{background:#151a22;border:1px solid #41404a;border-radius:13px;padding:12px 14px;min-width:0}
+    .stat label,.stat .value{display:flex;justify-content:space-between;gap:5px;font:600 11px system-ui,sans-serif;letter-spacing:.04em}
+    .stat label{color:var(--muted);margin-bottom:9px}.stat .value{color:var(--ink)}
+    .track{height:6px;border-radius:20px;background:#494047;overflow:hidden}.fill{height:100%;width:100%;border-radius:20px;background:linear-gradient(90deg,#b64d51,#ed8171);transition:width .3s}
+    .gold{min-width:88px}.gold strong{font-size:21px;color:var(--gold)}
+    .chapter{margin-top:18px;border:1px solid #595042;border-radius:17px;background:linear-gradient(150deg,#23242a,#151a22 42%,#11171f);box-shadow:0 18px 55px #0008;overflow:hidden}
+    .chapter-head{padding:22px 22px 17px;border-bottom:1px solid #6558403d;background:radial-gradient(ellipse at top right,#65543b35,transparent 70%)}
+    .chapter-head .location{display:flex;justify-content:space-between;gap:8px;align-items:center}.location h2{font-size:26px;font-weight:normal;margin:6px 0 2px}
+    .location small{font:600 10px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
+    .turn{font:600 11px system-ui,sans-serif;color:var(--muted);border:1px solid #7f745445;border-radius:30px;padding:7px 9px}
+    .story{min-height:280px;max-height:50vh;overflow:auto;overscroll-behavior:contain;padding:6px 22px 14px;scroll-behavior:smooth}
+    .entry{padding:14px 0 17px;border-bottom:1px solid #ffffff12;white-space:pre-line;line-height:1.8;font-size:16.5px;overflow-wrap:anywhere}
+    .entry.player{color:var(--gold);font-size:15px;font-style:italic}.entry.player:before{content:'YOU  /  ';font:700 10px system-ui,sans-serif;letter-spacing:.12em;color:#b99e74}
+    .entry.narrator{color:#e7dfd3}.entry:last-child{border:0}
+    .entry.thinking{color:var(--muted);font-style:italic}
+    .input-area{padding:18px 20px 20px;background:#10151d;border-top:1px solid #554b3e80}
+    .question{font:600 11px system-ui,sans-serif;text-transform:uppercase;color:var(--gold);letter-spacing:.13em;margin-bottom:10px}
+    textarea{display:block;width:100%;min-height:87px;border-radius:10px;padding:13px 14px;color:var(--ink);background:#1b232e;border:1px solid #69605a;resize:vertical;outline:none;font:16px/1.5 system-ui,sans-serif}
+    textarea:focus{border-color:var(--gold);box-shadow:0 0 0 2px #e0bd7d25}textarea::placeholder{color:#89919b}
+    .action-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:11px}
+    .hint{font:11px/1.4 system-ui,sans-serif;color:var(--muted)}
+    .primary{background:linear-gradient(145deg,#e3c18a,#caa269);border:0;border-radius:10px;padding:12px 19px;color:#201914;font:700 13px system-ui,sans-serif;white-space:nowrap}
+    .suggestions{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 17px;background:#10151d}
+    .suggestion{border:1px solid #73664c;background:#302c28;color:#ead3b0;padding:9px 12px;border-radius:999px;font:12px system-ui,sans-serif}
+    .tools{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+    .tool{padding:10px 14px;border:1px solid #5c5860;border-radius:10px;background:#191e27;color:#d6d3ce;font:600 12px system-ui,sans-serif}
+    .tool[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+    .panel{border:1px solid #4d4b50;border-radius:14px;background:#141a22;padding:18px;margin:0 0 16px}
+    .panel h3{font-size:19px;font-weight:normal;margin:0 0 9px;color:var(--gold)}
+    .panel p{font:13px/1.65 system-ui,sans-serif;color:#bbbfc6;margin:7px 0}
+    .panel ul{margin:8px 0;padding-left:20px;font:13px/1.8 system-ui,sans-serif;color:#ddd6cc}
+    .statusline{font:12px/1.5 system-ui,sans-serif;color:#aebdc4;min-height:20px;margin-top:10px}
+    .footer{font:11px/1.6 system-ui,sans-serif;color:#777f89;text-align:center;padding:14px}
+    .warning{color:#e8b47b!important}
+    [hidden]{display:none!important}
+    @media(max-width:480px){.shell{padding:12px 11px 22px}.brand strong{font-size:14px}.status{font-size:10px}.intro{padding:22px 0 5px}.stats{gap:7px}.stat{padding:10px}.chapter-head{padding:16px}.location h2{font-size:22px}.story{padding:3px 16px 10px;max-height:43vh}.entry{font-size:16px}.input-area{padding:15px}.suggestions{padding:0 15px 15px}.hint{font-size:10px}}
+    @media(prefers-reduced-motion:reduce){.story{scroll-behavior:auto}.fill{transition:none}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div class="brand"><span class="brandmark" aria-hidden="true">✧</span><div><small>A living story</small><strong>THE UNWRITTEN REALMS</strong></div></div>
+    <div class="status"><span class="dot"></span><span id="mode-label">Story engine</span></div>
+  </header>
+  <section class="intro" aria-label="Game title">
+    <div class="eyebrow">Chapter I · The Hollow Road</div>
+    <h1>Your words.<br>Your legend.</h1>
+    <p>Write your action. The realm will answer.</p>
+  </section>
+  <section class="stats" aria-label="Character statistics">
+    <div class="stat"><label><span>HEALTH</span><span id="hp-text">30 / 30</span></label><div class="track"><div class="fill" id="hp-fill"></div></div></div>
+    <div class="stat"><label><span>WANDERER</span><span>LEVEL 1</span></label><div class="value"><span id="scene-short">Hollow Road</span><span>✧</span></div></div>
+    <div class="stat gold"><label>CROWNS</label><strong id="gold-text">12</strong></div>
+  </section>
+  <section class="chapter" aria-label="Adventure">
+    <div class="chapter-head"><div class="location"><div><small>Current location</small><h2 id="location">The Hollow Road</h2></div><span class="turn" id="turn-text">TURN 0</span></div></div>
+    <div id="story" class="story" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form id="action-form" class="input-area">
+      <div class="question">What do you do?</div>
+      <textarea id="action" name="action" maxlength="400" aria-label="Type your action" placeholder="I approach the bridge and call out to whoever is there..." required></textarea>
+      <div class="action-row"><span class="hint">Any action · Ctrl/⌘ + Enter to submit</span><button class="primary" id="submit" type="submit">Take action &rarr;</button></div>
+    </form>
+    <div class="suggestions" id="suggestions" aria-label="Optional action ideas"></div>
+  </section>
+  <nav class="tools" aria-label="Game options">
+    <button class="tool" type="button" data-panel="ai" aria-pressed="true">✦ Local AI</button>
+    <button class="tool" type="button" data-panel="character">Character</button>
+    <button class="tool" type="button" data-panel="journal">Journal</button>
+    <button class="tool" type="button" data-panel="help">Help</button>
+  </nav>
+  <section id="panel-ai" class="panel">
+    <h3>✦ Optional on-device AI</h3>
+    <p><strong>Experimental narrator.</strong> Download a compact open model to your browser so it can rewrite each action into richer fantasy prose. It uses no paid API or account. Your actions stay on your device during generation.</p>
+    <p>Requires a substantial initial model download (approximately 118 MB plus other files) and compatible browser hardware. On older iPhones this may be slow or fail. The regular story engine always remains available.</p>
+    <button class="primary" type="button" id="load-ai">Enable local AI</button>
+    <button class="tool" type="button" id="disable-ai" hidden>Turn AI off</button>
+    <div class="statusline" id="ai-status" role="status">AI off. The rule-based story engine is ready to play.</div>
+  </section>
+  <section id="panel-character" class="panel" hidden><h3>Your wanderer</h3><div id="character-info"></div></section>
+  <section id="panel-journal" class="panel" hidden><h3>Adventure journal</h3><div id="journal-info"></div><button class="tool" type="button" id="export-save">Export save</button><button class="tool" type="button" id="restart">Start new adventure</button></section>
+  <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try, from talking and fighting to sneaking, investigating, resting and exploring. This prototype has a real rules-driven world with multiple locations, items and consequences.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.1 · Free to play · No API keys</p>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
