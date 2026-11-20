@@ -114,6 +114,25 @@ test("multiple ogre solutions preserve distinct consequences", () => {
   assert.ok(fought.hp < 30);
   assert.notEqual(paid.flags.ogre,charmed.flags.ogre);
 });
+test("finished adventures can return from the vault and revisit the bridge",()=>{
+  let game = toVault();
+  game = move(game,"I seal the moon beacon");
+  assert.equal(game.flags.ending,"sealed");
+  game = move(game,"I return to the keep");
+  assert.equal(game.scene,"fortress");
+  game = move(game,"I go to the bridge");
+  assert.equal(game.scene,"bridge");
+  assert.equal(game.flags.ending,"sealed");
+});
+test("known paths accept regular direction descriptions",()=>{
+  let game=toForest();
+  game=move(game,"I wander to the crossroads");
+  assert.equal(game.scene,"crossroads");
+  game=move(game,"I walk toward the valley");
+  assert.equal(game.scene,"valley");
+  game=move(game,"I return");
+  assert.equal(game.scene,"crossroads");
+});
 test("journal and recap reflect visited locations",()=>{
   let game = toForest();
   game = move(game,"follow the tracks to tower");
