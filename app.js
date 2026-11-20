@@ -1,8 +1,17 @@
-import { newGame, loadGame, applyAction, promptFor, prompts, SCENES } from "./game.js";
+import { newGame, loadGame, applyAction, promptFor, prompts, SCENES, questStatus, recap } from "./game.js";
 import { cleanNarration } from "./narration.js";
 import { checkModelSupport, isAppleMobile, resolveAIChoice } from "./ai-safety.js";
 
 const STORE = "unwritten-realms-save-v1";
+const UNDO = "unwritten-realms-undo-v1";
+const READABLE = "unwritten-realms-readable-v1";
+function setUndo(s) { try { localStorage.setItem(UNDO, JSON.stringify(s)); } catch {} }
+function getUndo() { try { return loadGame(localStorage.getItem(UNDO)); } catch { return null; } }
+function clearUndo() { try { localStorage.removeItem(UNDO); } catch {} }
+function saveMessage(message, warning = false) {
+  el("save-status").textContent = message;
+  el("save-status").classList.toggle("warning", warning);
+}
 const el = id => document.getElementById(id);
 let state;
 try { state = loadGame(localStorage.getItem(STORE)) || newGame(); }
@@ -56,6 +65,7 @@ function render() {
   el("location").textContent = SCENES[state.scene].name;
   el("scene-short").textContent = state.scene === "crossroads" ? "Hollow Road" : SCENES[state.scene].name.replace(/^The /, "");
   el("turn-text").textContent = "TURN " + state.turn;
+  el("chapter-label").textContent = state.flags.ending ? "Chapter I · The ending" : state.scene === "vault" ? "Chapter I · The third moon" : "Chapter I · The Hollow Road";
   const story = el("story");
   story.replaceChildren(...state.history.map(m => textNode("div", "entry " + m.role, m.text)));
   story.scrollTop = story.scrollHeight;
@@ -73,11 +83,20 @@ function render() {
     textNode("p", "", "Inventory: " + state.inventory.join(", "))
   );
   const journal = el("journal-info");
-  const actions = state.history.filter(x => x.role === "player").slice(-12);
+  const actions = state.history.filter(x => x.role === "player").slice(-6);
   journal.replaceChildren(
-    textNode("p", "", actions.length ? "Your last " + actions.length + " actions:" : "Your story has only just begun."),
-    ...actions.map((item, i) => textNode("p", "", "• " + item.text))
+    textNode("p", "goal", questStatus(state)),
+    ...state.journal.slice(-12).map(item => textNode("p", "", "✧ " + item)),
+    textNode("p", "", "Recent actions:"),
+    ...actions.map(item => textNode("p", "", "• " + item.text))
   );
+  el("map-info").replaceChildren(
+    textNode("p", "", "You have explored " + state.visited.length + " of " + Object.keys(SCENES).length + " locations."),
+    ...state.visited.map(key => textNode("p", "", "✧ " + SCENES[key].name + " — " + SCENES[key].exits))
+  );
+  el("undo-last").disabled = busy || !getUndo();
+  const lastNarrator = [...state.history].reverse().find(item => item.role === "narrator");
+  el("clear-last").disabled = busy || !lastNarrator?.canonical || lastNarrator.text === lastNarrator.canonical;
 }
 function setBusy(value) {
   busy = value;
@@ -136,7 +155,7 @@ function startAI(choice = "light") {
     setAIStatus("This browser cannot run the local AI worker. The story engine remains playable.", true);
     return;
   }
-  if (!("gpu" in navigator)) {
+  if (!navigator.gpu) {
     setAIStatus("WebGPU is unavailable in this browser. Local AI needs recent Safari/iOS; the story engine remains fully playable.", true);
     return;
   }
@@ -221,8 +240,11 @@ async function takeAction(raw) {
   try { result = applyAction(state, action); }
   catch (error) { setAIStatus("Game action error: " + error.message, true); return; }
   if (!result) return;
+  setUndo(state);
   state = result.state;
   persist();
+  el("recap-result").textContent = "";
+  el("story-message").textContent = "Your latest action is saved.";
   el("action").value = "";
   setBusy(true);
   if (ready) {
@@ -265,12 +287,62 @@ for (const button of document.querySelectorAll("[data-panel]")) {
   });
 }
 el("restart").addEventListener("click", () => {
+  if (busy) { saveMessage("Finish the current turn before restarting.", true); return; }
   if (!window.confirm("Start a new adventure? This replaces your local saved story. Export first if you want a backup.")) return;
+  setUndo(state);
   state = newGame();
   persist();
   render();
   el("action").focus();
 });
+
+el("clear-last").addEventListener("click", () => {
+  if (busy) { el("story-message").textContent = "Wait for the current action first."; return; }
+  const last = [...state.history].reverse().find(item => item.role === "narrator");
+  if (!last?.canonical) { el("story-message").textContent = "There is no verified alternate text for this reply."; return; }
+  last.text = last.canonical;
+  persist();
+  render();
+  el("story-message").textContent = "Original, verified game narration restored. Your choices are unchanged.";
+});
+el("undo-last").addEventListener("click", () => {
+  if (busy) { saveMessage("Wait for the current turn to finish.", true); return; }
+  const backup = getUndo();
+  if (!backup) { saveMessage("No previous turn is available.", true); return; }
+  state = backup;
+  persist();
+  clearUndo();
+  render();
+  saveMessage("Previous turn restored and saved.");
+});
+el("show-recap").addEventListener("click", () => {
+  el("recap-result").textContent = recap(state);
+});
+el("text-size").addEventListener("click", () => {
+  const large = !document.body.classList.contains("readable");
+  document.body.classList.toggle("readable", large);
+  el("text-size").textContent = large ? "Use normal text size" : "Use larger story text";
+  el("text-size").setAttribute("aria-pressed", String(large));
+  try { localStorage.setItem(READABLE, large ? "large" : "normal"); } catch {}
+});
+el("import-save").addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  if (busy) { saveMessage("Finish your current turn before restoring.", true); return; }
+  if (file.size > 1048576) { saveMessage("Save file is too large. Nothing changed.", true); return; }
+  try {
+    const imported = loadGame(await file.text());
+    if (!imported) { saveMessage("Unrecognized or invalid save. Current game is safe.", true); return; }
+    if (!window.confirm("Restore this adventure? Your current adventure will be replaced. Export it first if needed.")) return;
+    setUndo(state);
+    state = imported;
+    persist();
+    render();
+    saveMessage("Adventure restored and saved.");
+  } catch { saveMessage("Could not read that save. Current game is unchanged.", true); }
+});
+
 el("export-save").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -283,6 +355,12 @@ el("export-save").addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 });
 persist();
+try {
+  const large = localStorage.getItem(READABLE) === "large";
+  document.body.classList.toggle("readable", large);
+  el("text-size").textContent = large ? "Use normal text size" : "Use larger story text";
+  el("text-size").setAttribute("aria-pressed", String(large));
+} catch {}
 render();
 if (appleMobile) {
   el("load-ai-enhanced").textContent = baseClearLabel;

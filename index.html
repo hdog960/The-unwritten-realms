@@ -63,6 +63,13 @@
     .ai-choices button{min-height:42px}
     .footer{font:11px/1.6 system-ui,sans-serif;color:#777f89;text-align:center;padding:14px}
     .warning{color:#e8b47b!important}
+    .readable .entry.narrator{font-size:19px;line-height:1.9}
+    .readable .entry.player{font-size:17px;line-height:1.75}
+    .goal{color:var(--gold)!important;font-weight:600!important}
+    .save-tools{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}
+    .save-tools .tool{min-height:42px}
+    .restore-label{display:inline-flex;align-items:center;cursor:pointer}
+    .restore-label input{position:absolute;width:1px;height:1px;opacity:0}
     [hidden]{display:none!important}
     @media(max-width:480px){.shell{padding:12px 11px 22px}.brand strong{font-size:14px}.status{font-size:10px}.intro{padding:22px 0 5px}.stats{gap:7px}.stat{padding:10px}.chapter-head{padding:16px}.location h2{font-size:22px}.story{padding:3px 16px 10px;max-height:43vh}.entry{font-size:16px}.input-area{padding:15px}.suggestions{padding:0 15px 15px}.hint{font-size:10px}}
     @media(prefers-reduced-motion:reduce){.story{scroll-behavior:auto}.fill{transition:none}}
@@ -75,7 +82,7 @@
     <div class="status"><span class="dot"></span><span id="mode-label">Story engine</span></div>
   </header>
   <section class="intro" aria-label="Game title">
-    <div class="eyebrow">Chapter I · The Hollow Road</div>
+    <div class="eyebrow" id="chapter-label">Chapter I · The Hollow Road</div>
     <h1>Your words.<br>Your legend.</h1>
     <p>Write your action. The realm will answer.</p>
   </section>
@@ -93,11 +100,16 @@
       <div class="action-row"><span class="hint">Any action · Ctrl/⌘ + Enter to submit</span><button class="primary" id="submit" type="submit">Take action &rarr;</button></div>
     </form>
     <div class="suggestions" id="suggestions" aria-label="Optional action ideas"></div>
+    <div class="save-tools" style="padding:0 20px 16px;margin:0">
+      <button class="tool" type="button" id="clear-last" disabled>Use clear game text</button>
+      <span class="hint" id="story-message" role="status">If the AI writes a confusing reply, restore the original game description.</span>
+    </div>
   </section>
   <nav class="tools" aria-label="Game options">
     <button class="tool" type="button" data-panel="ai" aria-pressed="true">✦ Local AI</button>
     <button class="tool" type="button" data-panel="character">Character</button>
-    <button class="tool" type="button" data-panel="journal">Journal</button>
+    <button class="tool" type="button" data-panel="journal">Quest &amp; journal</button>
+    <button class="tool" type="button" data-panel="map">Map</button>
     <button class="tool" type="button" data-panel="help">Help</button>
   </nav>
   <section id="panel-ai" class="panel">
@@ -113,9 +125,23 @@
     <div class="statusline" id="ai-status" role="status">AI off. The rule-based story engine is ready to play.</div>
   </section>
   <section id="panel-character" class="panel" hidden><h3>Your wanderer</h3><div id="character-info"></div></section>
-  <section id="panel-journal" class="panel" hidden><h3>Adventure journal</h3><div id="journal-info"></div><button class="tool" type="button" id="export-save">Export save</button><button class="tool" type="button" id="restart">Start new adventure</button></section>
-  <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try, from talking and fighting to sneaking, investigating, resting and exploring. This prototype has a real rules-driven world with multiple locations, items and consequences.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
-  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.4 · Free to play · No API keys</p>
+  <section id="panel-journal" class="panel" hidden>
+    <h3>Quest &amp; journal</h3>
+    <div id="journal-info"></div>
+    <div class="save-tools">
+      <button class="tool" type="button" id="show-recap">Story recap</button>
+      <button class="tool" type="button" id="undo-last">Undo last turn</button>
+      <button class="tool" type="button" id="export-save">Export save</button>
+      <label class="tool restore-label" for="import-save">Restore save <input type="file" id="import-save" accept=".json,application/json"></label>
+      <button class="tool" type="button" id="text-size" aria-pressed="false">Use larger story text</button>
+      <button class="tool" type="button" id="restart">Start new adventure</button>
+    </div>
+    <p id="recap-result" aria-live="polite"></p>
+    <p id="save-status" role="status" aria-live="polite">Your game saves automatically on this device. Export a backup before clearing browser data.</p>
+  </section>
+  <section id="panel-map" class="panel" hidden><h3>Explored places</h3><div id="map-info"></div></section>
+  <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try. Explore the roads, chapel, forest, watchtower and keep. Investigate clues and choose what to do about the moon beacon. Important choices stay in your journal.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.5 · Free to play · No API keys</p>
 </main>
 <script type="module" src="./app.js"></script>
 </body>
