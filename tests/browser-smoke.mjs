@@ -102,7 +102,44 @@ try {
   await page.reload({waitUntil:"domcontentloaded",timeout:15000});
   assert.match(await page.locator("#location").innerText(),/Broken Bridge/);
   assert.match(await page.locator("#turn-text").innerText(),/TURN 2/);
-  console.log("Mobile Chromium smoke PASS: typed actions, branching NPC, map, recap, undo, autosave, save restore, text sizing, no-WebGPU button response, offline reload.");
+  // Separate iPhone-shaped browser with an inert mocked Worker: this verifies the
+  // 360M selection/consent handoff without pretending to run a GPU model on CI.
+  const gatedContext=await browser.newContext({
+    viewport:{width:390,height:844},isMobile:true,hasTouch:true,
+    userAgent:"Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1"
+  });
+  try {
+    const gatedPage=await gatedContext.newPage();
+    gatedPage.on("pageerror",e=>errorList.push("opt-in: "+String(e)));
+    await gatedPage.addInitScript(()=>{
+      Object.defineProperty(navigator,"gpu",{configurable:true,value:{}});
+      window.__workerInit=null;
+      window.Worker=class MockWorker {
+        constructor(){window.__workerCreated=(window.__workerCreated||0)+1;}
+        postMessage(data){
+          window.__workerInit=data;
+          if(data.type==="init")this.onmessage?.({data:{type:"ready",model:data.model}});
+        }
+        terminate(){}
+      };
+    });
+    await gatedPage.goto(origin+"/",{waitUntil:"domcontentloaded"});
+    assert.equal(await gatedPage.locator("#load-ai-mobile").isDisabled(),true);
+    assert.equal(await gatedPage.evaluate(()=>window.__workerCreated||0),0);
+    await gatedPage.locator("#mobile-ai-consent").check();
+    await gatedPage.locator("#load-ai-mobile").click();
+    const init=await gatedPage.evaluate(()=>window.__workerInit);
+    assert.equal(init.type,"init");
+    assert.equal(init.model,"enhanced");
+    assert.equal(init.mobileExperimental,true);
+    assert.equal(await gatedPage.evaluate(()=>window.__workerCreated),1);
+    assert.match(await gatedPage.locator("#ai-status").innerText(),/Larger 360M AI loaded/);
+    assert.equal(await gatedPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);
+    await gatedPage.locator("#disable-ai").click();
+    assert.match(await gatedPage.locator("#ai-status").innerText(),/AI off/);
+  }finally{await gatedContext.close();}
+  if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
+  console.log("Mobile Chromium smoke PASS: story + saves + offline + opt-in WebGPU-unavailable path + mocked 360M worker handoff (not real iPhone inference).");
 } finally {
   if(browser)await browser.close();
   await new Promise(r=>server.close(r));
