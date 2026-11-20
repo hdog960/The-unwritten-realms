@@ -153,7 +153,7 @@ function startAI(choice = "light") {
     setAIStatus("This browser cannot run the local AI worker. The story engine remains playable.", true);
     return;
   }
-  if (!("gpu" in navigator)) {
+  if (!navigator.gpu) {
     setAIStatus("WebGPU is unavailable in this browser. Local AI needs recent Safari/iOS; the story engine remains fully playable.", true);
     return;
   }
