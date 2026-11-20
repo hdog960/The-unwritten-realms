@@ -36,8 +36,10 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.3/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.4/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
+  assert.match(await page.locator("#mobile-ai-status").innerText(),/v0\.6\.4 controls connected/);
+  assert.equal(await page.locator("#repair-home-app").isVisible(),false);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
   assert.match(await page.locator("#location").innerText(),/Broken Bridge/);
@@ -102,13 +104,34 @@ try {
   assert.match(await page.locator("#ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.match(await page.locator("#mobile-ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.3/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.4/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);
   await page.reload({waitUntil:"domcontentloaded",timeout:15000});
   assert.match(await page.locator("#location").innerText(),/Broken Bridge/);
   assert.match(await page.locator("#turn-text").innerText(),/TURN 2/);
+  // Reproduce the exact symptom: HTML works but the ES-module app never loads.
+  // The independent inline bootstrap must detect it and preserve saves on repair.
+  const repairContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  try {
+    const repairPage=await repairContext.newPage();
+    let blockModule=true;
+    await repairPage.route("**/app.js?v=064",route=>blockModule?route.abort():route.continue());
+    await repairPage.goto(origin+"/",{waitUntil:"domcontentloaded"});
+    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/v0\.6\.4/);
+    await repairPage.evaluate(data=>localStorage.setItem("unwritten-realms-save-v1",data),backup);
+    await repairPage.locator("#load-ai-mobile").click();
+    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/STARTUP-01/);
+    assert.equal(await repairPage.locator("#repair-home-app").isVisible(),true);
+    blockModule=false;
+    await repairPage.locator("#repair-home-app").click();
+    await repairPage.waitForURL(/app-refresh=064/);
+    await repairPage.waitForFunction(()=>document.querySelector("#mobile-ai-status")?.textContent.includes("controls connected"));
+    assert.match(await repairPage.locator("#turn-text").innerText(),/TURN 2/);
+    assert.equal(await repairPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);
+    assert.equal(await repairPage.locator("#repair-home-app").isVisible(),false);
+  }finally{await repairContext.close();}
   // Separate iPhone-shaped browser with an inert mocked Worker: this verifies the
   // 360M selection/consent handoff without pretending to run a GPU model on CI.
   const gatedContext=await browser.newContext({
