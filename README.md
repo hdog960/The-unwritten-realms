@@ -69,3 +69,7 @@ On iPhone and iPad, the larger 360M WebGPU model is intentionally blocked **befo
 ### v0.4 — iPhone clearer writing
 
 The iPhone button now **works** rather than silently blocking a model: it selects **Clearer writing**, which uses the safe 135M model with a smaller context, two short-sentence instruction and deterministic decoding. This is **not** the 360M model and may still produce unclear prose; unsuitable outputs fall back to normal game text. If the lightweight model has already loaded, tapping either option instantly switches writing style without re-downloading. Both buttons show loading feedback. The 360M model stays blocked on iPhone and iPad. Save key/schema unchanged.
+
+## v0.5 adventure update
+
+Complete first-story mystery with the third moon, a hunter named Mara, a watchtower, a moon vault, three distinct endings, paths around the ogre, more item use and clue gathering. Adds a persistent quest journal, discovered-location map, recap, large-text mode, one-turn undo and validated save restore. Existing save key and schema stay unchanged.
