@@ -12,8 +12,8 @@ test("release assets are explicitly cached for offline startup",()=>{
   for(const name of ["index.html","app.js","game.js","narration.js","ai-safety.js","ai-worker.js","icon.svg"]) {
     assert.ok(sw.includes(name),name+" not cached");
   }
-  assert.match(sw,/unwritten-realms-shell-v8/);
-  assert.match(html,/Prototype v0\.6\.2/);
+  assert.match(sw,/unwritten-realms-shell-v9/);
+  assert.match(html,/Prototype v0\.6\.3/);
 });
 test("saved-adventure key and schema remain compatible",()=>{
   const app=file("app.js"),game=file("game.js");
@@ -38,4 +38,17 @@ test("iPhone 360M consent is enforced on click, not by a stale disabled attribut
   assert.match(app,/el\("load-ai-mobile"\)\.disabled = loading;/);
   assert.match(app,/choice === "mobile-enhanced" && !el\("mobile-ai-consent"\)\.checked/);
   assert.ok(app.indexOf('choice === "mobile-enhanced" && !el("mobile-ai-consent").checked') < app.indexOf('worker = new Worker('));
+});
+
+test("visible 360M status and versioned Home Screen assets are wired",()=>{
+  const html=file("index.html"),app=file("app.js"),sw=file("sw.js"),worker=file("ai-worker.js");
+  assert.match(html,/id="mobile-ai-status"/);
+  assert.match(html,/app\.js\?v=063/);
+  assert.match(app,/MOBILE_AI_BUILD = "v0\.6\.3"/);
+  assert.match(app,/ai-worker\.js\?v=063/);
+  assert.match(sw,/app\.js\?v=063/);
+  assert.match(sw,/ai-worker\.js\?v=063/);
+  assert.match(worker,/type:"stage"/);
+  assert.match(app,/if \(data.type === "stage"\)/);
+  assert.match(app,/GPU-01: WebGPU is unavailable/);
 });

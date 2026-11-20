@@ -66,6 +66,7 @@
     .ai-experiment label{display:flex;gap:9px;align-items:flex-start;font:13px/1.5 system-ui,sans-serif;color:var(--ink);margin:12px 0}
     .ai-experiment input{width:18px;height:18px;flex-shrink:0;accent-color:var(--gold)}
     .ai-experiment button{min-height:44px;width:100%}
+    .mobile-ai-status{margin:10px 0 0;padding:11px 12px;border:1px solid #59636b;border-radius:10px;background:#20242b;color:#dce5e7;font:600 12px/1.55 system-ui,sans-serif;overflow-wrap:anywhere}
     .footer{font:11px/1.6 system-ui,sans-serif;color:#777f89;text-align:center;padding:14px}
     .warning{color:#e8b47b!important}
     .readable .entry.narrator{font-size:19px;line-height:1.9}
@@ -131,6 +132,7 @@
       <p>Designed for devices like iPhone 17 Pro Max. Safari can still close or crash under memory pressure: JavaScript cannot prevent this. Export a save backup, close other tabs, and use Wi-Fi. Weights download: approximately 272 MB; runtime memory is higher. Never starts automatically.</p>
       <label><input id="mobile-ai-consent" type="checkbox"> I understand this experiment may crash Safari; load only when I explicitly tap the button.</label>
       <button class="primary" id="load-ai-mobile" type="button">Try larger AI · 360M (experimental)</button>
+      <p class="mobile-ai-status" id="mobile-ai-status" role="status" aria-live="polite">v0.6.3 · Waiting for controls. If this text never changes after tapping, the installed shortcut is running old JavaScript.</p>
     </fieldset>
     <p>Model downloads only start when you tap a supported option. Extra support files also download. Neither model is guaranteed to understand every action. If its reply looks malformed, the game uses its regular narration instead. Your existing save is kept.</p>
     <div class="statusline" id="ai-status" role="status">AI off. The rule-based story engine is ready to play.</div>
@@ -152,8 +154,8 @@
   </section>
   <section id="panel-map" class="panel" hidden><h3>Explored places</h3><div id="map-info"></div></section>
   <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try. Explore the roads, chapel, forest, watchtower and keep. Investigate clues and choose what to do about the moon beacon. Important choices stay in your journal.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
-  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6.2 · Free to play · No API keys</p>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6.3 · Free to play · No API keys</p>
 </main>
-<script type="module" src="./app.js"></script>
+<script type="module" src="./app.js?v=063"></script>
 </body>
 </html>
