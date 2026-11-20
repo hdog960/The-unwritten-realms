@@ -94,5 +94,18 @@ test("hunter stew heals eight without exceeding maximum", () => {
 test("unknown free-form input gets experimental improvisation prompt", () => {
   const r = applyAction(newGame(), "I paint a dragon with starlight on my shield");
   assert.equal(r.freeform, true);
-  assert.ok(promptFor(r)[0].content.includes("ANY action"));
+  assert.ok(promptFor(r)[1].content.includes("ANY action"));
+});
+
+test("looking toward another road does not teleport the player", () => {
+  const r = applyAction(newGame(), "I look toward the bridge and check for movement");
+  assert.equal(r.state.scene, "crossroads");
+  assert.equal(r.state.turn, 1);
+});
+test("plain language narrator prompt stays short and anchored", () => {
+  const r = applyAction(newGame(), "I walk toward the bridge");
+  const prompt = promptFor(r);
+  assert.ok(prompt[0].content.includes("plain English"));
+  assert.ok(prompt[1].content.includes("Confirmed outcome:"));
+  assert.ok(prompt[1].content.includes("Broken Bridge"));
 });
