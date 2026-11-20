@@ -95,6 +95,8 @@ function render() {
     ...state.visited.map(key => textNode("p", "", "✧ " + SCENES[key].name + " — " + SCENES[key].exits))
   );
   el("undo-last").disabled = busy || !getUndo();
+  const lastNarrator = [...state.history].reverse().find(item => item.role === "narrator");
+  el("clear-last").disabled = busy || !lastNarrator?.canonical || lastNarrator.text === lastNarrator.canonical;
 }
 function setBusy(value) {
   busy = value;
@@ -242,6 +244,7 @@ async function takeAction(raw) {
   state = result.state;
   persist();
   el("recap-result").textContent = "";
+  el("story-message").textContent = "Your latest action is saved.";
   el("action").value = "";
   setBusy(true);
   if (ready) {
@@ -293,6 +296,15 @@ el("restart").addEventListener("click", () => {
   el("action").focus();
 });
 
+el("clear-last").addEventListener("click", () => {
+  if (busy) { el("story-message").textContent = "Wait for the current action first."; return; }
+  const last = [...state.history].reverse().find(item => item.role === "narrator");
+  if (!last?.canonical) { el("story-message").textContent = "There is no verified alternate text for this reply."; return; }
+  last.text = last.canonical;
+  persist();
+  render();
+  el("story-message").textContent = "Original, verified game narration restored. Your choices are unchanged.";
+});
 el("undo-last").addEventListener("click", () => {
   if (busy) { saveMessage("Wait for the current turn to finish.", true); return; }
   const backup = getUndo();
