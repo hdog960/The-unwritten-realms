@@ -82,6 +82,17 @@ test("forest branch can be carved into a unique spear", () => {
   game = move(game,"I craft another spear");
   assert.equal(game.inventory.filter(x => x === "Ash-wood spear").length, 1);
 });
+test("harmless thrown objects and campfires do not count as attacking an ogre",()=>{
+  let game=toBridge();
+  game=move(game,"I throw a flower into the ravine");
+  assert.equal(game.flags.ogre,"guarding");
+  assert.equal(game.hp,30);
+  game=move(game,"I start a fire beside the stones");
+  assert.equal(game.flags.ogre,"guarding");
+  assert.equal(game.hp,30);
+  game=move(game,"I fire an arrow at the ogre");
+  assert.equal(game.flags.ogre,"fled");
+});
 test("negated movement commands do not transport the player", () => {
   let game = move(newGame(), "I do not go right to the bridge");
   assert.equal(game.scene, "crossroads");

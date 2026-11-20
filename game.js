@@ -61,7 +61,9 @@ function freeformOutcome(s, text) {
     : /\b(dig|bury|scratch|excavate)\b/.test(text)
       ? "You scrape at the ground. The soil gives way a little, but you uncover nothing useful."
       : /\b(draw|sketch|write|paint|carve)\b/.test(text)
-        ? "You mark your idea on a nearby surface. The mark remains, but it has no immediate magical effect."
+        ? (/\b(cloud|sky|air|stars)\b/.test(text)
+          ? "You trace the image through the open air, but the sky does not hold a mark."
+          : "You mark your idea on a nearby surface. The mark remains, but it has no immediate magical effect.")
         : /\b(climb|jump|leap|swing|balance)\b/.test(text)
           ? "You test your footing and look for a safe route. Nothing here leads you out of " + place + " yet."
           : /\b(attack|strike|fight|shoot|kick|punch)\b/.test(text)
@@ -313,7 +315,9 @@ export function applyAction(previous, input) {
   const back = has(t, /\b(back|return|leave|retreat|go home|turn around)\b/);
   const movement = has(t, /\b(go|walk|head|travel|move|follow|approach|cross|enter|take the path|explore|run|climb|visit|sneak|creep|slip|wander|venture|stroll|hike|step|make my way)\b/);
   const gaze = has(t, /\b(look|inspect|search|examine|study|listen|observe|investigate|check|scan)\b/);
-  const fight = has(t, /\b(attack|fight|strike|stab|slash|shoot|fire|swing|kill|hit|charge|throw|lunge)\b/);
+  const fight = has(t, /\b(attack|fight|strike|stab|slash|shoot|swing|kill|hit|charge|lunge)\b/) ||
+    (has(t, /\b(throw|toss|hurl)\b/) && has(t, /\b(ogre|enemy|monster)\b/) && has(t, /\b(at|toward|towards)\b/)) ||
+    (has(t, /\bfire\b/) && has(t, /\b(arrow|bolt|bow|crossbow)\b/));
   const talk = has(t, /\b(talk|speak|ask|say|tell|negotiate|bargain|bribe|pay|offer|greet)\b/);
   const sneak = has(t, /\b(sneak|hide|creep|slip|distract|duck|crawl)\b/);
   const rest = has(t, /\b(rest|sleep|heal|eat|bandage)\b/);
