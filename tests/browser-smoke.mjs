@@ -69,7 +69,7 @@ try {
   assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
   assert.match(await page.locator(".footer").innerText(),/v0\.5/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
-  await page.waitForFunction(()=>navigator.serviceWorker?.controller!==null,{timeout:10000}).catch(()=>{});
+  await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);
   await page.reload({waitUntil:"domcontentloaded",timeout:15000});
   assert.match(await page.locator("#location").innerText(),/Broken Bridge/);
