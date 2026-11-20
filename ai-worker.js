@@ -6,16 +6,20 @@ self.onmessage=async({data})=>{
   if(!data?.type)return;
   if(data.type==="init"){
     try {
-      if(!self.navigator?.gpu)throw new Error("WebGPU is unavailable inside the worker");
+      self.postMessage({type:"stage",message:"worker started; checking WebGPU",button:"Checking GPU…"});
+      if(!self.navigator?.gpu)throw new Error("GPU-02: WebGPU unavailable inside dedicated Worker");
       activeModel=MODELS[data.model]?data.model:"light";
       experimentalMobile=activeModel==="enhanced" && data.mobileExperimental===true;
       // Check hardware support BEFORE importing Transformers.js or downloading weights.
       if(experimentalMobile){
-        const adapter=await self.navigator.gpu.requestAdapter({powerPreference:"low-power"});
-        if(!adapter)throw new Error("No usable WebGPU adapter");
-        if(!adapter.features?.has("shader-f16"))throw new Error("WebGPU adapter lacks required shader-f16");
+        self.postMessage({type:"stage",message:"WebGPU found; checking shader-f16 adapter feature",button:"Checking adapter…"});
+        const adapter=await self.navigator.gpu.requestAdapter();
+        if(!adapter)throw new Error("GPU-03: No usable WebGPU adapter");
+        if(!adapter.features?.has("shader-f16"))throw new Error("GPU-04: Adapter lacks required shader-f16 feature");
       }
+      self.postMessage({type:"stage",message:"GPU preflight complete; loading model library",button:"Loading library…"});
       const {pipeline}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/+esm");
+      self.postMessage({type:"stage",message:"Model library loaded; preparing/downloading weights",button:"Preparing weights…"});
       generator=await pipeline("text-generation",MODELS[activeModel],{
         device:"webgpu",dtype:"q4f16",
         progress_callback: status=>{

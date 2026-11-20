@@ -34,6 +34,8 @@ const aiDevice = {
   maxTouchPoints: navigator.maxTouchPoints,
   mobileExperience
 };
+const MOBILE_AI_BUILD = "v0.6.3";
+let mobileAttempt = false;
 const baseLightLabel = "Lightweight AI · ~118 MB";
 const baseClearLabel = mobileExperience ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
 function resetChoiceLabels() {
@@ -124,6 +126,13 @@ function setBusy(value) {
 function setAIStatus(message, isWarning = false) {
   el("ai-status").textContent = message;
   el("ai-status").classList.toggle("warning", isWarning);
+  // In a tall iPhone panel the old status was out of sight. Mirror every
+  // experimental attempt next to the button that was tapped.
+  if (mobileAttempt) {
+    const inline = el("mobile-ai-status");
+    inline.textContent = MOBILE_AI_BUILD + " · " + message;
+    inline.classList.toggle("warning", isWarning);
+  }
 }
 function disableAI(message = "AI off. The rule-based story engine is ready to play.") {
   clearLoadWatchdog();
@@ -143,6 +152,13 @@ function disableAI(message = "AI off. The rule-based story engine is ready to pl
   setAIStatus(message);
 }
 function startAI(choice = "light") {
+  if (choice === "mobile-enhanced") {
+    mobileAttempt = true;
+    setAIStatus("360M tap received. Checking consent and GPU…");
+  } else {
+    mobileAttempt = false;
+    el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " · Experimental AI not started.";
+  }
   // The only route to 360M is an explicitly acknowledged tap, independent
   // of whether iPhone Home Screen Safari reports a recognisable user agent.
   if (choice === "mobile-enhanced" && !el("mobile-ai-consent").checked) {
@@ -176,11 +192,11 @@ function startAI(choice = "light") {
     return;
   }
   if (!("Worker" in window)) {
-    setAIStatus("This browser cannot run the local AI worker. The story engine remains playable.", true);
+    setAIStatus("WORKER-01: Web Workers are unavailable in this Home Screen app. The story engine remains playable.", true);
     return;
   }
   if (!navigator.gpu) {
-    setAIStatus("WebGPU is unavailable in this browser. Local AI needs recent Safari/iOS; the story engine remains fully playable.", true);
+    setAIStatus("GPU-01: WebGPU is unavailable to this Home Screen app (navigator.gpu missing). The button responded but 360M cannot load here. Try the same game URL in Safari for comparison. Do not delete your shortcut.", true);
     return;
   }
   loading = true;
@@ -191,21 +207,25 @@ function startAI(choice = "light") {
   el("load-ai-enhanced").disabled = true;
   el("load-ai-mobile").disabled = true;
   const loadingButton = choice === "mobile-enhanced" ? el("load-ai-mobile") : choice === "clear" ? el("load-ai-enhanced") : el("load-ai");
-  loadingButton.textContent = "Loading AI…";
+  loadingButton.textContent = activeModel === "enhanced" ? "Checking WebGPU…" : "Loading AI…";
   el("disable-ai").hidden = false;
-  setAIStatus(activeModel === "enhanced" ? "Preparing larger AI. This may take time and require significant memory." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
+  setAIStatus(activeModel === "enhanced" ? "360M tap accepted. Starting the isolated worker; checking WebGPU before any download." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
   try {
-    worker = new Worker("./ai-worker.js", { type: "module" });
+    worker = new Worker("./ai-worker.js?v=063", { type: "module" });
     const activeWorker = worker;
-    worker.onmessageerror = () => { if (worker === activeWorker) disableAI("The local AI worker failed to send a message. The story engine is still available."); };
+    worker.onmessageerror = () => { if (worker === activeWorker) disableAI("WORKER-02: AI worker message failed. Your story engine still works."); };
     worker.onerror = event => {
       if (worker !== activeWorker) return;
       console.error("Local AI worker failed", event.message);
-      disableAI("Local AI could not start on this browser. The regular game is still playable.");
+      disableAI("WORKER-03: Local AI worker failed: " + String(event?.message || "module failed").slice(0,120) + ". The story engine still works.");
     };
     worker.onmessage = ({ data }) => {
       if (worker !== activeWorker || !data) return;
-      if (data.type === "progress") {
+      if (data.type === "stage") {
+        armLoadWatchdog();
+        setAIStatus("360M · " + String(data.message || "Preparing…").slice(0,150));
+        if (activeModel === "enhanced") loadingButton.textContent = String(data.button || "Preparing 360M…").slice(0,45);
+      } else if (data.type === "progress") {
         armLoadWatchdog();
         const part = data.percent != null ? " (" + Math.round(data.percent) + "%)" : "";
         setAIStatus("Downloading / preparing: " + (data.file || "model") + part);
@@ -227,7 +247,7 @@ function startAI(choice = "light") {
           awaiting.get(data.id).reject(new Error(data.message || "Generation failed"));
           awaiting.delete(data.id);
         } else {
-          disableAI("Local AI failed to load: " + String(data.message || "device unsupported").slice(0, 170) + ". Story engine still works.");
+          disableAI("MODEL-01: " + String(data.message || "model unsupported").slice(0, 190) + ". Your story engine still works.");
         }
       } else if (data.type === "generated") {
         if (awaiting.has(data.id)) {
@@ -238,7 +258,7 @@ function startAI(choice = "light") {
     };
     worker.postMessage({ type: "init", model: activeModel, mobileExperimental });
   } catch (err) {
-    disableAI("Could not create local AI worker: " + err.message);
+    disableAI("WORKER-04: Could not create local AI worker: " + err.message);
   }
 }
 function generate(messages, style = "normal") {
@@ -390,6 +410,7 @@ try {
   el("text-size").setAttribute("aria-pressed", String(large));
 } catch {}
 render();
+el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " controls connected. Tap the experimental button for live GPU status.";
 // The checkbox + experimental button are always in the HTML, including
 // on iPhone Home Screen apps with unexpected navigator.platform values.
 resetChoiceLabels();

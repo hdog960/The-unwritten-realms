@@ -36,7 +36,7 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.2/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.3/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
@@ -93,14 +93,16 @@ try {
   const noConsentSave=await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1"));
   await experiment.click();
   assert.match(await page.locator("#ai-status").innerText(),/Acknowledge the experimental 360M warning/);
+  assert.match(await page.locator("#mobile-ai-status").innerText(),/Acknowledge the experimental 360M warning/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),noConsentSave);
   await page.locator("#mobile-ai-consent").check();
   assert.equal(await experiment.isEnabled(),true);
   const saveBefore=await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1"));
   await experiment.click();
-  assert.match(await page.locator("#ai-status").innerText(),/WebGPU is unavailable/);
+  assert.match(await page.locator("#ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
+  assert.match(await page.locator("#mobile-ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.2/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.3/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);
@@ -128,7 +130,10 @@ try {
         constructor(){window.__workerCreated=(window.__workerCreated||0)+1;}
         postMessage(data){
           window.__workerInit=data;
-          if(data.type==="init")this.onmessage?.({data:{type:"ready",model:data.model}});
+          if(data.type==="init"){
+            this.onmessage?.({data:{type:"stage",message:"GPU adapter passed",button:"Checking adapter…"}});
+            this.onmessage?.({data:{type:"ready",model:data.model}});
+          }
         }
         terminate(){}
       };
@@ -161,6 +166,7 @@ try {
     assert.equal(init.mobileExperimental,true);
     assert.equal(await gatedPage.evaluate(()=>window.__workerCreated),2);
     assert.match(await gatedPage.locator("#ai-status").innerText(),/Larger 360M AI loaded/);
+    assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/Larger 360M AI loaded/);
     assert.equal(await gatedPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);
     await gatedPage.locator("#disable-ai").click();
     assert.match(await gatedPage.locator("#ai-status").innerText(),/AI off/);
