@@ -159,7 +159,7 @@ function resolveSpecial(s, t, context) {
     };
     for (const route of routes[s.scene] || []) {
       if (route.match.test(t)) {
-        return go(s, route.next, "You travel back to " + SCENES[route.next].name + ". " + look({ ...s, scene: route.next }));
+        return go(s, route.next, "You travel to " + SCENES[route.next].name + ". " + look({ ...s, scene: route.next }));
       }
     }
   }
