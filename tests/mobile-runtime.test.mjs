@@ -1,5 +1,5 @@
 import test from "node:test";import assert from "node:assert/strict";
-import {mobileModelAppConfig,mobileCompletionRequest,MOBILE_MODEL_ID} from "../mobile-llm.js";
+import {mobileModelAppConfig,mobileCompletionRequest,MOBILE_MODEL_ID,createMobileEngine,generateMobileText} from "../mobile-llm.js";
 import {readAttempt,detectInterruptedAttempt,beginAttempt,updateAttempt,endAttempt,AI_ATTEMPT_KEY} from "../ai-attempt.js";
 const store=()=>{const map=new Map();return {getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,String(v))};};
 test("WebLLM 360M has small prefill, context, bounded tokens and fixed model library",()=>{
@@ -27,4 +27,28 @@ test("incomplete mobile load is detected across reload with zero game save modif
  assert.equal(readAttempt(mem).interruptions,0);
  assert.equal(readAttempt(mem).active,false);
  assert.ok(mem.getItem(AI_ATTEMPT_KEY));
+});
+
+test("alternative 360M creation and narration invoke real WebLLM API contract",async()=>{
+ const record={model_id:MOBILE_MODEL_ID,model:"https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC",model_lib:"https://example.test/compiled.wasm"};
+ const calls=[];let progress="";
+ const engine={chat:{completions:{create:async request=>{
+   calls.push({type:"generate",request});
+   return {choices:[{message:{content:"You approach the moonlit tower."}}]};
+ }}}};
+ const webllm={prebuiltAppConfig:{model_list:[record]},CreateMLCEngine:async(model,options)=>{
+   calls.push({type:"create",model,options});
+   options.initProgressCallback({text:"loading weights",progress:0.5});
+   return engine;
+ }};
+ const loaded=await createMobileEngine(webllm,p=>{progress=p.text;});
+ assert.strictEqual(loaded,engine);
+ assert.equal(calls[0].model,MOBILE_MODEL_ID);
+ assert.equal(calls[0].options.appConfig.model_list[0].overrides.prefill_chunk_size,128);
+ assert.equal(progress,"loading weights");
+ const narration=await generateMobileText(loaded,[{role:"system",content:"A fantasy story"},{role:"user",content:"Enter tower"}]);
+ assert.equal(narration,"You approach the moonlit tower.");
+ assert.equal(calls[1].request.max_tokens,64);
+ assert.equal(calls[1].request.stream,false);
+ await assert.rejects(generateMobileText({chat:{completions:{create:async()=>({choices:[]})}}},[]),/empty output/);
 });

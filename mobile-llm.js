@@ -11,3 +11,15 @@ export function mobileCompletionRequest(messages){
  return {messages:messages.map(m=>({role:m.role,content:String(m.content||"")})),
    max_tokens:64,temperature:0.2,top_p:0.9,stream:false};
 }
+
+export async function createMobileEngine(webllm,onProgress){
+ if(typeof webllm?.CreateMLCEngine!=="function")throw new Error("WebLLM runtime lacks CreateMLCEngine");
+ const config=mobileModelAppConfig(webllm.prebuiltAppConfig);
+ return webllm.CreateMLCEngine(MOBILE_MODEL_ID,{appConfig:config,initProgressCallback:onProgress});
+}
+export async function generateMobileText(engine,messages){
+ const reply=await engine.chat.completions.create(mobileCompletionRequest(messages));
+ const output=String(reply?.choices?.[0]?.message?.content||"").trim();
+ if(!output)throw new Error("WebLLM produced empty output");
+ return output;
+}

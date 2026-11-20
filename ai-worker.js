@@ -1,6 +1,6 @@
 // All inference is local to this worker. Mobile 360M is opt-in, not crash-proof.
 import {compactAIMessages,narrationGenerationOptions} from "./ai-safety.js";
-import {MOBILE_MODEL_ID,mobileModelAppConfig,mobileCompletionRequest} from "./mobile-llm.js";
+import {createMobileEngine,generateMobileText} from "./mobile-llm.js";
 const MODELS=Object.freeze({light:"onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",enhanced:"onnx-community/SmolLM2-360M-Instruct-ONNX"});
 let generator=null,mobileEngine=null,activeModel="light",experimentalMobile=false;
 self.onmessage=async({data})=>{
@@ -21,14 +21,11 @@ self.onmessage=async({data})=>{
       if(experimentalMobile){
         // Separate MLC/WebLLM q4f16 runtime rather than ONNX constant folding.
         self.postMessage({type:"stage",message:"GPU preflight passed; loading alternative WebLLM runtime",button:"Loading WebLLM…"});
-        const {CreateMLCEngine,prebuiltAppConfig}=await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.89/+esm");
+        const webllm=await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.89/+esm");
         self.postMessage({type:"stage",message:"WebLLM imported; loading compressed model weights",button:"Preparing 360M…"});
-        mobileEngine=await CreateMLCEngine(MOBILE_MODEL_ID,{
-          appConfig:mobileModelAppConfig(prebuiltAppConfig),
-          initProgressCallback:p=>{
-            const n=Number(p?.progress);
-            self.postMessage({type:"progress",file:String(p?.text||"WebLLM weights").slice(0,100),percent:Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null});
-          }
+        mobileEngine=await createMobileEngine(webllm,p=>{
+          const n=Number(p?.progress);
+          self.postMessage({type:"progress",file:String(p?.text||"WebLLM weights").slice(0,100),percent:Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null});
         });
         self.postMessage({type:"ready",model:activeModel,backend:"webllm"});
         return;
@@ -56,9 +53,7 @@ self.onmessage=async({data})=>{
     try{
       if(experimentalMobile&&mobileEngine){
         const input=compactAIMessages(data.messages,true);
-        const result=await mobileEngine.chat.completions.create(mobileCompletionRequest(input));
-        const output=String(result?.choices?.[0]?.message?.content||"").trim();
-        if(!output)throw new Error("WebLLM produced empty output");
+        const output=await generateMobileText(mobileEngine,input);
         self.postMessage({type:"generated",id:data.id,text:output});
         return;
       }
