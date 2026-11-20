@@ -1,6 +1,6 @@
 import { newGame, loadGame, applyAction, promptFor, prompts, SCENES, questStatus, recap } from "./game.js";
 import { cleanNarration } from "./narration.js";
-import { checkModelSupport, isAppleMobile, resolveAIChoice } from "./ai-safety.js";
+import { checkModelSupport, resolveAIChoice } from "./ai-safety.js";
 
 const STORE = "unwritten-realms-save-v1";
 const UNDO = "unwritten-realms-undo-v1";
@@ -23,14 +23,15 @@ let busy = false;
 let requestId = 0;
 let activeModel = "light";
 let activeStyle = "normal";
-const appleMobile = isAppleMobile(navigator.userAgent, navigator.platform, navigator.maxTouchPoints);
+// Never rely on user-agent/platform detection to reveal the experimental option:
+ // installed Home Screen apps can present a desktop-like browser fingerprint.
 const baseLightLabel = "Lightweight AI · ~118 MB";
-const baseClearLabel = appleMobile ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
+const baseClearLabel = "Clearer writing · same small AI";
 function resetChoiceLabels() {
   el("load-ai").textContent = baseLightLabel;
   el("load-ai-enhanced").textContent = baseClearLabel;
   el("load-ai").setAttribute("aria-pressed", String(ready && activeStyle === "normal" && activeModel === "light"));
-  el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (activeStyle === "clear" || activeModel === "enhanced") && !(appleMobile && activeModel === "enhanced")));
+  el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && activeStyle === "clear" && activeModel === "light"));
   el("load-ai-mobile").textContent = ready && activeModel === "enhanced" ? "Larger AI active · 360M" : "Try larger AI · 360M (experimental)";
   el("load-ai-mobile").setAttribute("aria-pressed", String(ready && activeModel === "enhanced"));
   el("load-ai-mobile").disabled = loading || !el("mobile-ai-consent").checked;
@@ -130,6 +131,12 @@ function disableAI(message = "AI off. The rule-based story engine is ready to pl
   setAIStatus(message);
 }
 function startAI(choice = "light") {
+  // The only route to 360M is an explicitly acknowledged tap, independent
+  // of whether iPhone Home Screen Safari reports a recognisable user agent.
+  if (choice === "mobile-enhanced" && !el("mobile-ai-consent").checked) {
+    setAIStatus("Acknowledge the experimental 360M warning before loading the larger AI.", true);
+    return;
+  }
   const selected = resolveAIChoice(choice, navigator);
   if (loading) {
     setAIStatus("AI is already loading. You can cancel with Turn AI off.");
@@ -150,7 +157,7 @@ function startAI(choice = "light") {
     return;
   }
   const model = selected.model;
-  const mobileExperimental = choice === "mobile-enhanced" && appleMobile && el("mobile-ai-consent").checked;
+  const mobileExperimental = choice === "mobile-enhanced" && el("mobile-ai-consent").checked;
   const support = checkModelSupport(model, navigator, { experimentalMobile: mobileExperimental });
   if (!support.allowed) {
     setAIStatus(support.message, true);
@@ -371,11 +378,8 @@ try {
   el("text-size").setAttribute("aria-pressed", String(large));
 } catch {}
 render();
-if (appleMobile) {
-  el("load-ai-enhanced").textContent = baseClearLabel;
-  el("model-compatibility").hidden = false;
-  el("mobile-ai-experiment").hidden = false;
-}
+// The checkbox + experimental button are always in the HTML, including
+// on iPhone Home Screen apps with unexpected navigator.platform values.
 resetChoiceLabels();
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

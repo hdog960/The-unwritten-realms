@@ -6,9 +6,9 @@ export function isAppleMobile(userAgent="",platform="",maxTouchPoints=0) {
 }
 export function resolveAIChoice(choice,device={}) {
   if(choice==="mobile-enhanced") return {model:"enhanced",style:"normal",label:"Experimental larger AI (360M)"};
-  if(choice==="clear" && isAppleMobile(device.userAgent,device.platform,device.maxTouchPoints))
-    return {model:"light",style:"clear",label:"Clear writing (small AI)"};
-  if(choice==="clear") return {model:"enhanced",style:"normal",label:"Larger AI"};
+  // Never hide a large-model download behind a button that sounds like a small-model writing style.
+  // Standalone iOS web apps can report unexpected user-agent/platform values.
+  if(choice==="clear") return {model:"light",style:"clear",label:"Clear writing (small AI)"};
   return {model:"light",style:"normal",label:"Lightweight AI"};
 }
 export function checkModelSupport(model,device={},options={}) {
