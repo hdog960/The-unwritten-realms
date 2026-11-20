@@ -23,15 +23,24 @@ let busy = false;
 let requestId = 0;
 let activeModel = "light";
 let activeStyle = "normal";
-// Never rely on user-agent/platform detection to reveal the experimental option:
- // installed Home Screen apps can present a desktop-like browser fingerprint.
+// A Home Screen app may report a desktop-like user agent; compact/standalone
+// display is safer for choosing the default button than browser identity alone.
+const mobileExperience = navigator.standalone === true ||
+  window.matchMedia("(max-width: 640px)").matches ||
+  window.matchMedia("(pointer: coarse)").matches;
+const aiDevice = {
+  userAgent: navigator.userAgent,
+  platform: navigator.platform,
+  maxTouchPoints: navigator.maxTouchPoints,
+  mobileExperience
+};
 const baseLightLabel = "Lightweight AI · ~118 MB";
-const baseClearLabel = "Clearer writing · same small AI";
+const baseClearLabel = mobileExperience ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
 function resetChoiceLabels() {
   el("load-ai").textContent = baseLightLabel;
   el("load-ai-enhanced").textContent = baseClearLabel;
   el("load-ai").setAttribute("aria-pressed", String(ready && activeStyle === "normal" && activeModel === "light"));
-  el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && activeStyle === "clear" && activeModel === "light"));
+  el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (mobileExperience ? activeStyle === "clear" && activeModel === "light" : activeModel === "enhanced")));
   el("load-ai-mobile").textContent = ready && activeModel === "enhanced" ? "Larger AI active · 360M" : "Try larger AI · 360M (experimental)";
   el("load-ai-mobile").setAttribute("aria-pressed", String(ready && activeModel === "enhanced"));
   el("load-ai-mobile").disabled = loading || !el("mobile-ai-consent").checked;
@@ -137,7 +146,7 @@ function startAI(choice = "light") {
     setAIStatus("Acknowledge the experimental 360M warning before loading the larger AI.", true);
     return;
   }
-  const selected = resolveAIChoice(choice, navigator);
+  const selected = resolveAIChoice(choice, aiDevice);
   if (loading) {
     setAIStatus("AI is already loading. You can cancel with Turn AI off.");
     return;
@@ -158,7 +167,7 @@ function startAI(choice = "light") {
   }
   const model = selected.model;
   const mobileExperimental = choice === "mobile-enhanced" && el("mobile-ai-consent").checked;
-  const support = checkModelSupport(model, navigator, { experimentalMobile: mobileExperimental });
+  const support = checkModelSupport(model, aiDevice, { experimentalMobile: mobileExperimental });
   if (!support.allowed) {
     setAIStatus(support.message, true);
     return;
