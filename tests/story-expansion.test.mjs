@@ -93,6 +93,12 @@ test("harmless thrown objects and campfires do not count as attacking an ogre",(
   game=move(game,"I fire an arrow at the ogre");
   assert.equal(game.flags.ogre,"fled");
 });
+test("ranged attacks don't inexplicably describe a melee sword strike",()=>{
+  const result=applyAction(toBridge(),"I fire an arrow at the ogre");
+  assert.equal(result.state.flags.ogre,"fled");
+  assert.ok(!/blade flashing/.test(result.outcome));
+  assert.ok(/ogre/.test(result.outcome));
+});
 test("negated movement commands do not transport the player", () => {
   let game = move(newGame(), "I do not go right to the bridge");
   assert.equal(game.scene, "crossroads");

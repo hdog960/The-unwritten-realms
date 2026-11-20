@@ -364,7 +364,10 @@ export function applyAction(previous, input) {
     const damage = 4 + (s.turn % 4);
     s.hp = Math.max(1, s.hp - damage);
     s.flags.ogre = "fled";
-    outcome = "You rush the ogre, blade flashing in the rain. Your strike grazes its arm, but its wild swing bruises you for " + damage + " damage. Startled by your ferocity, it retreats into the ravine. The bridge is open.";
+    const ranged = /\b(shoot|fire|throw|hurl|toss)\b/.test(t);
+    outcome = ranged
+      ? "Your hurried attack grazes the ogre's shoulder. It hurls a stone at you for " + damage + " damage, then retreats into the ravine. The bridge is open."
+      : "You rush the ogre, blade flashing in the rain. Your strike grazes its arm, but its wild swing bruises you for " + damage + " damage. Startled by your ferocity, it retreats into the ravine. The bridge is open.";
   } else if (s.scene === "chapel" && has(t, /\b(relic|reliquary|altar|silver|treasure|amulet)\b/) && has(t, /\b(take|grab|pick|collect|steal|loot|open)\b/)) {
     if (s.flags.chapelRelic) outcome = "The reliquary stands empty. You already secured its silver moon charm.";
     else { s.flags.chapelRelic = true; s.inventory.push("Silver moon charm"); outcome = "You lift a silver moon charm from the altar. It is cold as winter water. Somewhere high above, the tolling bell falls silent. The charm is now in your pack."; }
