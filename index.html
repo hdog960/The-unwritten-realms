@@ -100,6 +100,10 @@
       <div class="action-row"><span class="hint">Any action · Ctrl/⌘ + Enter to submit</span><button class="primary" id="submit" type="submit">Take action &rarr;</button></div>
     </form>
     <div class="suggestions" id="suggestions" aria-label="Optional action ideas"></div>
+    <div class="save-tools" style="padding:0 20px 16px;margin:0">
+      <button class="tool" type="button" id="clear-last" disabled>Use clear game text</button>
+      <span class="hint" id="story-message" role="status">If the AI writes a confusing reply, restore the original game description.</span>
+    </div>
   </section>
   <nav class="tools" aria-label="Game options">
     <button class="tool" type="button" data-panel="ai" aria-pressed="true">✦ Local AI</button>
