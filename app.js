@@ -1,6 +1,7 @@
 import { newGame, loadGame, applyAction, promptFor, prompts, SCENES, questStatus, recap } from "./game.js";
 import { cleanNarration } from "./narration.js";
 import { checkModelSupport, resolveAIChoice } from "./ai-safety.js";
+import {detectInterruptedAttempt,beginAttempt,updateAttempt,endAttempt} from "./ai-attempt.js";
 
 const STORE = "unwritten-realms-save-v1";
 const UNDO = "unwritten-realms-undo-v1";
@@ -34,8 +35,10 @@ const aiDevice = {
   maxTouchPoints: navigator.maxTouchPoints,
   mobileExperience
 };
-const MOBILE_AI_BUILD = "v0.6.5";
+const MOBILE_AI_BUILD = "v0.6.6";
 let mobileAttempt = false;
+let retryAllowed = true;
+const aiAttemptStore=window.localStorage;
 const baseLightLabel = "Lightweight AI · ~118 MB";
 const baseClearLabel = mobileExperience ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
 function resetChoiceLabels() {
@@ -43,7 +46,7 @@ function resetChoiceLabels() {
   el("load-ai-enhanced").textContent = baseClearLabel;
   el("load-ai").setAttribute("aria-pressed", String(ready && activeStyle === "normal" && activeModel === "light"));
   el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (mobileExperience ? activeStyle === "clear" && activeModel === "light" : activeModel === "enhanced")));
-  el("load-ai-mobile").textContent = ready && activeModel === "enhanced" ? "Larger AI active · 360M" : "Try larger AI · 360M (experimental)";
+  el("load-ai-mobile").textContent = ready && activeModel === "enhanced" ? "Optimized 360M active · WebLLM" : "Try optimized 360M · WebLLM (experimental)";
   el("load-ai-mobile").setAttribute("aria-pressed", String(ready && activeModel === "enhanced"));
   // Safari Home Screen can display a checked box without promptly firing change.
   // The button remains tappable; startAI checks consent synchronously before
@@ -139,6 +142,8 @@ function disableAI(message = "AI off. The rule-based story engine is ready to pl
   ready = false;
   loading = false;
   if (worker) { worker.terminate(); worker = null; }
+  if(mobileAttempt)endAttempt(aiAttemptStore,false);
+  if(mobileAttempt&&activeModel==="enhanced"&&!ready){retryAllowed=false;el("retry-360m").hidden=false;}
   for (const pending of awaiting.values()) pending.reject(new Error("AI disabled"));
   awaiting.clear();
   activeStyle = "normal";
@@ -163,6 +168,10 @@ function startAI(choice = "light") {
   // of whether iPhone Home Screen Safari reports a recognisable user agent.
   if (choice === "mobile-enhanced" && !el("mobile-ai-consent").checked) {
     setAIStatus("Acknowledge the experimental 360M warning before loading the larger AI.", true);
+    return;
+  }
+  if(choice==="mobile-enhanced"&&!retryAllowed){
+    setAIStatus("SAFETY-01: A previous 360M attempt was interrupted or failed. Use the explicit one-attempt retry control first. The small AI still works.",true);
     return;
   }
   const selected = resolveAIChoice(choice, aiDevice);
@@ -200,6 +209,10 @@ function startAI(choice = "light") {
     return;
   }
   loading = true;
+  if(mobileExperimental){
+    beginAttempt(aiAttemptStore,"starting Worker");
+    retryAllowed=false;
+  }
   armLoadWatchdog();
   activeModel = model === "enhanced" ? "enhanced" : "light";
   activeStyle = selected.style;
@@ -211,7 +224,7 @@ function startAI(choice = "light") {
   el("disable-ai").hidden = false;
   setAIStatus(activeModel === "enhanced" ? "360M tap accepted. Starting the isolated worker; checking WebGPU before any download." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
   try {
-    worker = new Worker("./ai-worker.js?v=065", { type: "module" });
+    worker = new Worker("./ai-worker.js?v=066", { type: "module" });
     const activeWorker = worker;
     worker.onmessageerror = () => { if (worker === activeWorker) disableAI("WORKER-02: AI worker message failed. Your story engine still works."); };
     worker.onerror = event => {
@@ -223,6 +236,7 @@ function startAI(choice = "light") {
       if (worker !== activeWorker || !data) return;
       if (data.type === "stage") {
         armLoadWatchdog();
+        if(mobileExperimental)updateAttempt(aiAttemptStore,data.message||"loading");
         setAIStatus("360M · " + String(data.message || "Preparing…").slice(0,150));
         if (activeModel === "enhanced") loadingButton.textContent = String(data.button || "Preparing 360M…").slice(0,45);
       } else if (data.type === "progress") {
@@ -231,6 +245,7 @@ function startAI(choice = "light") {
         setAIStatus("Downloading / preparing: " + (data.file || "model") + part);
         loadingButton.textContent = part ? "Loading AI " + part : "Loading AI…";
       } else if (data.type === "ready") {
+        if(mobileExperimental){endAttempt(aiAttemptStore,true);retryAllowed=true;el("retry-360m").hidden=true;}
         clearLoadWatchdog();
         loading = false;
         ready = true;
@@ -243,6 +258,7 @@ function startAI(choice = "light") {
           : activeModel === "enhanced" ? "Larger 360M AI loaded. Try an action. Turn it off if the device runs slowly."
           : "Local AI loaded. Type an action to use it. You can switch writing style or turn it off.");
       } else if (data.type === "error") {
+        if(data.id!=null&&mobileAttempt)endAttempt(aiAttemptStore,false);
         if (data.id != null && awaiting.has(data.id)) {
           awaiting.get(data.id).reject(new Error(data.message || "Generation failed"));
           awaiting.delete(data.id);
@@ -250,13 +266,14 @@ function startAI(choice = "light") {
           disableAI("MODEL-01: " + String(data.message || "model unsupported").slice(0, 190) + ". Your story engine still works.");
         }
       } else if (data.type === "generated") {
+        if(mobileAttempt)endAttempt(aiAttemptStore,true);
         if (awaiting.has(data.id)) {
           awaiting.get(data.id).resolve(data.text);
           awaiting.delete(data.id);
         }
       }
     };
-    worker.postMessage({ type: "init", model: activeModel, mobileExperimental });
+    worker.postMessage({ type: "init", model: activeModel, mobileExperimental, backend:mobileExperimental?"webllm":"transformers" });
   } catch (err) {
     disableAI("WORKER-04: Could not create local AI worker: " + err.message);
   }
@@ -275,6 +292,7 @@ function generate(messages, style = "normal") {
       resolve: value => { clearTimeout(timeout); resolve(value); },
       reject: reason => { clearTimeout(timeout); reject(reason); }
     });
+    if(mobileAttempt&&activeModel==="enhanced")beginAttempt(aiAttemptStore,"generating");
     worker.postMessage({ type: "generate", id, messages, style });
   });
 }
@@ -321,6 +339,13 @@ el("action").addEventListener("keydown", event => {
 el("load-ai").addEventListener("click", () => startAI("light"));
 el("load-ai-enhanced").addEventListener("click", () => startAI("clear"));
 el("mobile-ai-consent").addEventListener("change", resetChoiceLabels);
+el("retry-360m").addEventListener("click",()=>{
+  retryAllowed=true;
+  el("retry-360m").hidden=true;
+  el("mobile-ai-consent").checked=false;
+  mobileAttempt=true;
+  setAIStatus("One experimental retry permitted. Check the risk box again before tapping. No model has loaded.",true);
+});
 el("load-ai-mobile").addEventListener("click", () => startAI("mobile-enhanced"));
 el("disable-ai").addEventListener("click", () => disableAI());
 for (const button of document.querySelectorAll("[data-panel]")) {
@@ -411,7 +436,15 @@ try {
 } catch {}
 render();
 window.__unwrittenBoot?.connected();
-el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " controls connected. Tap the experimental button for live GPU status.";
+const previousAI=detectInterruptedAttempt(aiAttemptStore);
+if(previousAI.wasInterrupted||previousAI.interruptions>0){
+  retryAllowed=false;
+  el("retry-360m").hidden=false;
+  mobileAttempt=true;
+  setAIStatus("SAFETY-02: Previous 360M load did not finish (last stage: "+previousAI.phase+"). Safari may have restarted due to memory, or the page may have been closed. Nothing was restarted. Small AI stays available.",true);
+}else{
+  el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " controls connected. Optimized WebLLM 360M is off until an explicit tap.";
+}
 // The checkbox + experimental button are always in the HTML, including
 // on iPhone Home Screen apps with unexpected navigator.platform values.
 resetChoiceLabels();

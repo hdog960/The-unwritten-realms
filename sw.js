@@ -1,6 +1,6 @@
 // Best-effort offline shell. Third-party model assets are not cached by this service worker.
-const CACHE = "unwritten-realms-shell-v11";
-const SHELL = ["./", "./index.html", "./app.js", "./app.js?v=065", "./game.js", "./narration.js", "./ai-safety.js", "./ai-worker.js", "./ai-worker.js?v=065", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "unwritten-realms-shell-v12";
+const SHELL = ["./", "./index.html", "./app.js", "./app.js?v=066", "./game.js", "./narration.js", "./ai-safety.js", "./ai-attempt.js", "./mobile-llm.js", "./ai-worker.js", "./ai-worker.js?v=066", "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()).catch(() => {}));
 });

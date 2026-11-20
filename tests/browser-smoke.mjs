@@ -36,9 +36,9 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.5/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.6/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
-  assert.match(await page.locator("#mobile-ai-status").innerText(),/v0\.6\.5 controls connected/);
+  assert.match(await page.locator("#mobile-ai-status").innerText(),/v0\.6\.6 controls connected/);
   assert.equal(await page.locator("#repair-home-app").isVisible(),false);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
@@ -104,7 +104,7 @@ try {
   assert.match(await page.locator("#ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.match(await page.locator("#mobile-ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.5/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.6/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);
@@ -117,16 +117,16 @@ try {
   try {
     const repairPage=await repairContext.newPage();
     let blockModule=true;
-    await repairPage.route("**/app.js?v=065",route=>blockModule?route.abort():route.continue());
+    await repairPage.route("**/app.js?v=066",route=>blockModule?route.abort():route.continue());
     await repairPage.goto(origin+"/",{waitUntil:"domcontentloaded"});
-    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/v0\.6\.5/);
+    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/v0\.6\.6/);
     await repairPage.evaluate(data=>localStorage.setItem("unwritten-realms-save-v1",data),backup);
     await repairPage.locator("#load-ai-mobile").click();
     assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/STARTUP-01/);
     assert.equal(await repairPage.locator("#repair-home-app").isVisible(),true);
     blockModule=false;
     await repairPage.locator("#repair-home-app").click();
-    await repairPage.waitForURL(/app-refresh=065/);
+    await repairPage.waitForURL(/app-refresh=066/);
     await repairPage.waitForFunction(()=>document.querySelector("#mobile-ai-status")?.textContent.includes("controls connected"));
     assert.match(await repairPage.locator("#turn-text").innerText(),/TURN 2/);
     assert.equal(await repairPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);
@@ -187,6 +187,7 @@ try {
     assert.equal(init.type,"init");
     assert.equal(init.model,"enhanced");
     assert.equal(init.mobileExperimental,true);
+    assert.equal(init.backend,"webllm");
     assert.equal(await gatedPage.evaluate(()=>window.__workerCreated),2);
     assert.match(await gatedPage.locator("#ai-status").innerText(),/Larger 360M AI loaded/);
     assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/Larger 360M AI loaded/);
@@ -200,6 +201,20 @@ try {
     await gatedPage.locator("#load-ai-mobile").click();
     assert.match(await gatedPage.locator("#ai-status").innerText(),/Acknowledge the experimental 360M warning/);
     assert.equal(await gatedPage.evaluate(()=>window.__workerCreated||0),0);
+    await gatedPage.evaluate(()=>localStorage.setItem("unwritten-realms-360m-attempt-v1",
+      JSON.stringify({active:true,interruptions:0,phase:"Loading WebLLM weights"})));
+    await gatedPage.reload({waitUntil:"domcontentloaded"});
+    assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/SAFETY-02/);
+    assert.equal(await gatedPage.locator("#retry-360m").isVisible(),true);
+    await gatedPage.locator("#mobile-ai-consent").check();
+    await gatedPage.locator("#load-ai-mobile").click();
+    assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/SAFETY-01/);
+    assert.equal(await gatedPage.evaluate(()=>window.__workerCreated||0),0);
+    await gatedPage.locator("#retry-360m").click();
+    assert.equal(await gatedPage.locator("#mobile-ai-consent").isChecked(),false);
+    await gatedPage.locator("#mobile-ai-consent").check();
+    await gatedPage.locator("#load-ai-mobile").click();
+    assert.equal((await gatedPage.evaluate(()=>window.__workerInit)).backend,"webllm");
   }finally{await gatedContext.close();}
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   console.log("Mobile Chromium smoke PASS: story + saves + offline + opt-in WebGPU-unavailable path + mocked 360M worker handoff (not real iPhone inference).");

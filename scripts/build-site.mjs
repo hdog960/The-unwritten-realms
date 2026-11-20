@@ -5,7 +5,7 @@ import { dirname, join, posix } from "node:path";
 
 const assets=[
   "index.html", "app.js", "game.js", "narration.js", "ai-safety.js",
-  "ai-worker.js", "sw.js", "manifest.webmanifest", "icon.svg"
+  "ai-attempt.js", "mobile-llm.js", "ai-worker.js", "sw.js", "manifest.webmanifest", "icon.svg"
 ];
 const required=new Set(assets);
 const dist="dist";
