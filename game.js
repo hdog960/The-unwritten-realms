@@ -83,11 +83,11 @@ export function applyAction(previous, input) {
     const parent = { valley: "crossroads", bridge: "crossroads", forest: "crossroads", chapel: "valley", fortress: "bridge", camp: "forest" };
     outcome = s.scene === "crossroads" ? "You glance back down the dark road you came from. Its tracks have already vanished into rain." :
       go(s, parent[s.scene], "You retrace your steps. " + arriving({ ...s, scene: parent[s.scene] }));
-  } else if (s.scene === "crossroads" && (has(t, /\b(left|valley|bell|mist)\b/) || (movement && has(t, /\b(downhill)\b/)))) {
+  } else if (s.scene === "crossroads" && movement && (has(t, /\b(left|valley|bell|mist)\b/) || has(t, /\b(downhill)\b/))) {
     outcome = go(s, "valley", "You descend the left-hand trail. " + arriving({ ...s, scene: "valley" }));
-  } else if (s.scene === "crossroads" && has(t, /\b(right|bridge|keep|fortress|ogre)\b/)) {
+  } else if (s.scene === "crossroads" && movement && has(t, /\b(right|bridge|keep|fortress|ogre)\b/)) {
     outcome = go(s, "bridge", "You approach the bridge. " + arriving({ ...s, scene: "bridge" }));
-  } else if (s.scene === "crossroads" && has(t, /\b(forest|woods|pines|trail|trees|straight|ahead)\b/)) {
+  } else if (s.scene === "crossroads" && movement && has(t, /\b(forest|woods|pines|trail|trees|straight|ahead)\b/)) {
     outcome = go(s, "forest", "You follow the narrow woodland trail. " + arriving({ ...s, scene: "forest" }));
   } else if (s.scene === "valley" && has(t, /\b(chapel|church|bell tower|bell)\b/) && (movement || has(t, /\b(enter)\b/))) {
     outcome = go(s, "chapel", "You push through the chapel's broken doorway. " + arriving({ ...s, scene: "chapel" }));
@@ -155,9 +155,21 @@ export function applyAction(previous, input) {
 }
 export function promptFor(result) {
   const s = result.state;
-  const recent = s.history.slice(-8,-2).map(m => m.role + ": " + m.text).join("\n").slice(-1500);
+  const recent = s.history.slice(-8, -2).filter(m => m.role === "narrator")
+    .map(m => m.text).join(" ").slice(-450);
+  const guide = "You narrate a fantasy text RPG. Reply in plain English using 2 or 3 short, complete sentences in second person (you/your). Describe concrete actions and their immediate consequences. Avoid flowery language, metaphors, repetition, lists, dialogue tags, and filler. Stay in the current scene. No markdown.";
+  const constraint = "Never change health, crowns, items, creatures defeated, or location unless the confirmed outcome says so.";
+  const instruction = result.freeform
+    ? "The rules do not recognize this action. Describe a believable small response to the attempt in this scene. Do not award items, wounds, victories or travel. Players may type ANY action."
+    : "Retell the confirmed outcome in clearer, simpler language. Do not alter any of its facts or results.";
   return [
-    { role: "system", content: result.freeform ? "You are an imaginative fantasy game master. Players may type ANY action. In 65-100 words describe specifically and creatively how the world responds in second person, remembering prior actions. Stay in the current location. Do not alter tracked items, HP, gold, or travel; those are handled by the rules engine. Never mention technical limitations or rules; end with a hook." : "You are a vivid, concise fantasy RPG narrator. Rewrite the canonical outcome in second person as atmospheric fantasy prose (55-95 words). Respect ALL facts in the canonical outcome: same location, results, coins, damage, items and NPC fate. Never invent new rewards, new damage, moves, completed quests, or location transitions. Do not mention game systems, prompts, or rules. End with an intriguing detail. No Markdown headings." },
-    { role: "user", content: "Location: " + location(s) + ". HP " + s.hp + "/30. Crowns " + s.gold + ". Inventory: " + s.inventory.join(", ") + ".\nRecent scene:\n" + recent + "\nPlayer typed: " + result.action + "\n" + (result.freeform ? "The rules engine has no predefined outcome. Invent a plausible in-scene consequence without changing tracked stats. Environmental context: " : "Canonical outcome to narrate exactly:\n") + result.outcome }
+    { role: "system", content: guide + " " + constraint },
+    { role: "user", content:
+      "Place: " + location(s) + ". Nearby: " + arriving(s) +
+      (recent ? "\\nEarlier: " + recent : "") +
+      "\\nPlayer action: " + result.action +
+      "\\n" + instruction +
+      "\\nConfirmed outcome: " + result.outcome +
+      "\\nNarrate clearly:" }
   ];
 }
