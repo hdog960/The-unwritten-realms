@@ -63,6 +63,10 @@ try {
   await page.locator("#restart").click();
   assert.match(await page.locator("#turn-text").innerText(),/TURN 0/);
   await page.locator("#import-save").setInputFiles({name:"unwritten-backup.json",mimeType:"application/json",buffer:Buffer.from(backup)});
+  // File.text() and the confirmation run asynchronously after the change event;
+  // wait for the actual restored state rather than racing the event handler.
+  await page.waitForFunction(() => document.querySelector("#turn-text")?.textContent === "TURN 2", null, {timeout:10000});
+  assert.match(await page.locator("#save-status").innerText(),/Adventure restored and saved/);
   assert.match(await page.locator("#turn-text").innerText(),/TURN 2/);
   await page.evaluate(() => {
     const key="unwritten-realms-save-v1";
