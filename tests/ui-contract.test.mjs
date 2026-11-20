@@ -12,8 +12,8 @@ test("release assets are explicitly cached for offline startup",()=>{
   for(const name of ["index.html","app.js","game.js","narration.js","ai-safety.js","ai-worker.js","icon.svg"]) {
     assert.ok(sw.includes(name),name+" not cached");
   }
-  assert.match(sw,/unwritten-realms-shell-v6/);
-  assert.match(html,/Prototype v0\.6/);
+  assert.match(sw,/unwritten-realms-shell-v7/);
+  assert.match(html,/Prototype v0\.6\.1/);
 });
 test("saved-adventure key and schema remain compatible",()=>{
   const app=file("app.js"),game=file("game.js");

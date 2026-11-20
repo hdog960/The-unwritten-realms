@@ -119,14 +119,14 @@
   </nav>
   <section id="panel-ai" class="panel">
     <h3>✦ Optional on-device AI</h3>
-    <p><strong>Choose a free narrator.</strong> The standard iPhone options use the small model; a separate, risk-acknowledged experimental 360M option is below. Desktop can select 360M directly. No paid API is used.</p>
+    <p><strong>Choose a free narrator.</strong> On phones, the standard options use the smaller 135M model. Desktop layouts retain a direct larger option. The clearly marked 360M experiment below remains available with explicit approval, even if your Home Screen app reports a desktop browser. No paid API is used.</p>
     <div class="ai-choices">
       <button class="tool" type="button" id="load-ai">Lightweight AI · ~118 MB</button>
-      <button class="primary" type="button" id="load-ai-enhanced">Larger AI · ~272 MB (desktop)</button>
+      <button class="primary" type="button" id="load-ai-enhanced">Clearer writing · same small AI</button>
       <button class="tool" type="button" id="disable-ai" hidden>Turn AI off</button>
     </div>
-    <p id="model-compatibility" class="warning" hidden>Clearer writing still uses the smaller 135M model. The 360M model is only available through the separate experimental option, after you accept the risk.</p>
-    <fieldset id="mobile-ai-experiment" class="ai-experiment" hidden>
+    <p id="model-compatibility" class="warning">Clearer writing still uses the smaller 135M model. The 360M model is only available through the separate experimental option, after you accept the risk.</p>
+    <fieldset id="mobile-ai-experiment" class="ai-experiment">
       <legend>Experimental 360M AI for newer iPhones</legend>
       <p>Designed for devices like iPhone 17 Pro Max. Safari can still close or crash under memory pressure: JavaScript cannot prevent this. Export a save backup, close other tabs, and use Wi-Fi. Weights download: approximately 272 MB; runtime memory is higher. Never starts automatically.</p>
       <label><input id="mobile-ai-consent" type="checkbox"> I understand this experiment may crash Safari; load only when I explicitly tap the button.</label>
@@ -152,7 +152,7 @@
   </section>
   <section id="panel-map" class="panel" hidden><h3>Explored places</h3><div id="map-info"></div></section>
   <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try. Explore the roads, chapel, forest, watchtower and keep. Investigate clues and choose what to do about the moon beacon. Important choices stay in your journal.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
-  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6 · Free to play · No API keys</p>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6.1 · Free to play · No API keys</p>
 </main>
 <script type="module" src="./app.js"></script>
 </body>

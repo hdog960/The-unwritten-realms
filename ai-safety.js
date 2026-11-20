@@ -6,8 +6,11 @@ export function isAppleMobile(userAgent="",platform="",maxTouchPoints=0) {
 }
 export function resolveAIChoice(choice,device={}) {
   if(choice==="mobile-enhanced") return {model:"enhanced",style:"normal",label:"Experimental larger AI (360M)"};
-  if(choice==="clear" && isAppleMobile(device.userAgent,device.platform,device.maxTouchPoints))
+  // Standalone iOS web apps can present desktop-like UA/platform values;
+  // prefer the actual compact/touch/standalone screen experience for the safe option.
+  if(choice==="clear" && (isAppleMobile(device.userAgent,device.platform,device.maxTouchPoints) || device.mobileExperience===true))
     return {model:"light",style:"clear",label:"Clear writing (small AI)"};
+  // Preserve the original desktop model behavior for genuinely desktop-sized browsers.
   if(choice==="clear") return {model:"enhanced",style:"normal",label:"Larger AI"};
   return {model:"light",style:"normal",label:"Lightweight AI"};
 }

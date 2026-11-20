@@ -35,6 +35,13 @@ test("only explicit opt-in enables larger model on Apple mobile",()=>{
     assert.equal(resolveAIChoice("mobile-enhanced",d).model,"enhanced");
   }
 });
+test("desktop-like standalone mobile fingerprints must not select 360M via clear writing",()=>{
+  const spoofed={userAgent:"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",platform:"MacIntel",maxTouchPoints:0,mobileExperience:true};
+  assert.equal(isAppleMobile(spoofed.userAgent,spoofed.platform,spoofed.maxTouchPoints),false);
+  assert.equal(resolveAIChoice("clear",spoofed).model,"light");
+  assert.equal(resolveAIChoice("mobile-enhanced",spoofed).model,"enhanced");
+  assert.equal(resolveAIChoice("clear",{userAgent:"Mozilla/5.0 Windows NT",platform:"Win32",mobileExperience:false}).model,"enhanced");
+});
 test("larger mobile context and generation remain bounded without mutating prompts",()=>{
   const input=[{role:"system",content:"S".repeat(3000)},{role:"user",content:"U".repeat(3000)}];
   const result=compactAIMessages(input,true);
