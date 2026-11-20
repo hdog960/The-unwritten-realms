@@ -12,8 +12,8 @@ test("release assets are explicitly cached for offline startup",()=>{
   for(const name of ["index.html","app.js","game.js","narration.js","ai-safety.js","ai-worker.js","icon.svg"]) {
     assert.ok(sw.includes(name),name+" not cached");
   }
-  assert.match(sw,/unwritten-realms-shell-v7/);
-  assert.match(html,/Prototype v0\.6\.1/);
+  assert.match(sw,/unwritten-realms-shell-v8/);
+  assert.match(html,/Prototype v0\.6\.2/);
 });
 test("saved-adventure key and schema remain compatible",()=>{
   const app=file("app.js"),game=file("game.js");
@@ -28,4 +28,14 @@ test("clearing text option and the old AI compatibility guard remain in place",(
   for(const name of ["text-size","undo-last","import-save","recap-result","chapter-label","panel-map","clear-last","story-message","mobile-ai-experiment","mobile-ai-consent","load-ai-mobile"]) assert.ok(html.includes('id="'+name+'"'));
   assert.ok(app.includes("resolveAIChoice"));
   assert.ok(app.includes("clearLoadWatchdog"));
+});
+
+test("iPhone 360M consent is enforced on click, not by a stale disabled attribute",()=>{
+  const html=file("index.html"),app=file("app.js");
+  const button=html.match(/<button[^>]*id="load-ai-mobile"[^>]*>/)?.[0];
+  assert.ok(button,"Missing experimental button");
+  assert.doesNotMatch(button,/\sdisabled(?:\s|=|>)/);
+  assert.match(app,/el\("load-ai-mobile"\)\.disabled = loading;/);
+  assert.match(app,/choice === "mobile-enhanced" && !el\("mobile-ai-consent"\)\.checked/);
+  assert.ok(app.indexOf('choice === "mobile-enhanced" && !el("mobile-ai-consent").checked') < app.indexOf('worker = new Worker('));
 });

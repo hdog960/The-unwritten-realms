@@ -43,7 +43,10 @@ function resetChoiceLabels() {
   el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (mobileExperience ? activeStyle === "clear" && activeModel === "light" : activeModel === "enhanced")));
   el("load-ai-mobile").textContent = ready && activeModel === "enhanced" ? "Larger AI active · 360M" : "Try larger AI · 360M (experimental)";
   el("load-ai-mobile").setAttribute("aria-pressed", String(ready && activeModel === "enhanced"));
-  el("load-ai-mobile").disabled = loading || !el("mobile-ai-consent").checked;
+  // Safari Home Screen can display a checked box without promptly firing change.
+  // The button remains tappable; startAI checks consent synchronously before
+  // creating any Worker or downloading model weights.
+  el("load-ai-mobile").disabled = loading;
 }
 
 let loadWatchdog = null;
