@@ -91,7 +91,11 @@ export function loadGame(raw) {
     s.maxHp = 30;
     s.hp = Math.max(0, Math.min(30, s.hp));
     s.gold = Math.max(0, Math.min(9999, s.gold));
-    s.history = s.history.slice(-60).map(h => ({ role: h.role, text: h.text.slice(0, 1200) }));
+    s.history = s.history.slice(-60).map(h => ({
+      role: h.role,
+      text: h.text.slice(0, 1200),
+      ...(typeof h.canonical === "string" ? { canonical: h.canonical.slice(0, 1200) } : {})
+    }));
     s.inventory = s.inventory.filter(v => typeof v === "string").slice(0, 30);
     s.flags = { ...DEFAULT_FLAGS, ...s.flags };
     s.visited = Array.isArray(s.visited) ? [...new Set(s.visited.filter(v => SCENES[v]))].slice(0, 30) : [s.scene];
