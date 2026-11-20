@@ -1,5 +1,6 @@
 import { newGame, loadGame, applyAction, promptFor, prompts, SCENES } from "./game.js";
 import { cleanNarration } from "./narration.js";
+import { checkModelSupport, isAppleMobile } from "./ai-safety.js";
 
 const STORE = "unwritten-realms-save-v1";
 const el = id => document.getElementById(id);
@@ -12,6 +13,19 @@ let loading = false;
 let busy = false;
 let requestId = 0;
 let activeModel = "light";
+let loadWatchdog = null;
+const LOAD_STALL_MS = 120000;
+function clearLoadWatchdog() {
+  if (loadWatchdog !== null) clearTimeout(loadWatchdog);
+  loadWatchdog = null;
+}
+function armLoadWatchdog() {
+  clearLoadWatchdog();
+  loadWatchdog = setTimeout(() => {
+    if (loading) disableAI("The AI stopped responding during loading. It has been safely turned off. Your saved adventure is unaffected.");
+  }, LOAD_STALL_MS);
+}
+
 const awaiting = new Map();
 
 function persist() {
@@ -66,6 +80,7 @@ function setAIStatus(message, isWarning = false) {
   el("ai-status").classList.toggle("warning", isWarning);
 }
 function disableAI(message = "AI off. The rule-based story engine is ready to play.") {
+  clearLoadWatchdog();
   ready = false;
   loading = false;
   if (worker) { worker.terminate(); worker = null; }
@@ -80,7 +95,15 @@ function disableAI(message = "AI off. The rule-based story engine is ready to pl
   setAIStatus(message);
 }
 function startAI(model = "light") {
-  if (loading || ready) return;
+  if (loading || ready) {
+    if (loading) setAIStatus("The current AI model is still loading. Tap Turn AI off if you want to cancel.");
+    return;
+  }
+  const support = checkModelSupport(model, navigator);
+  if (!support.allowed) {
+    setAIStatus(support.message, true);
+    return;
+  }
   if (!("Worker" in window)) {
     setAIStatus("This browser cannot run the local AI worker. The story engine remains playable.", true);
     return;
@@ -90,6 +113,7 @@ function startAI(model = "light") {
     return;
   }
   loading = true;
+  armLoadWatchdog();
   activeModel = model === "enhanced" ? "enhanced" : "light";
   el("load-ai").disabled = true;
   el("load-ai-enhanced").disabled = true;
@@ -97,15 +121,21 @@ function startAI(model = "light") {
   setAIStatus(activeModel === "enhanced" ? "Preparing clearer AI… about 272 MB of weights plus support files. Device compatibility is not guaranteed." : "Preparing lightweight AI… about 118 MB of weights plus support files.");
   try {
     worker = new Worker("./ai-worker.js", { type: "module" });
+    const activeWorker = worker;
+    worker.onmessageerror = () => { if (worker === activeWorker) disableAI("The local AI worker failed to send a message. The story engine is still available."); };
     worker.onerror = event => {
+      if (worker !== activeWorker) return;
       console.error("Local AI worker failed", event.message);
       disableAI("Local AI could not start on this browser. The regular game is still playable.");
     };
     worker.onmessage = ({ data }) => {
+      if (worker !== activeWorker || !data) return;
       if (data.type === "progress") {
+        armLoadWatchdog();
         const part = data.percent != null ? " (" + Math.round(data.percent) + "%)" : "";
         setAIStatus("Downloading / preparing: " + (data.file || "model") + part);
       } else if (data.type === "ready") {
+        clearLoadWatchdog();
         loading = false;
         ready = true;
         el("load-ai").hidden = true;
@@ -221,6 +251,12 @@ el("export-save").addEventListener("click", () => {
 });
 persist();
 render();
+if (isAppleMobile(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)) {
+  el("load-ai-enhanced").textContent = "Larger AI — iPhone unsupported";
+  el("load-ai-enhanced").classList.remove("primary");
+  el("load-ai-enhanced").classList.add("tool");
+  el("model-compatibility").hidden = false;
+}
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(() => {});

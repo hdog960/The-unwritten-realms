@@ -105,16 +105,17 @@
     <p><strong>Choose a free narrator.</strong> Both models run directly on your device with no paid API. The clearer option uses a larger model that may make more coherent sentences, but it needs more memory and may be slow on some iPhones.</p>
     <div class="ai-choices">
       <button class="tool" type="button" id="load-ai">Lightweight AI · ~118 MB</button>
-      <button class="primary" type="button" id="load-ai-enhanced">Try clearer AI · ~272 MB</button>
+      <button class="primary" type="button" id="load-ai-enhanced">Try clearer AI · ~272 MB (desktop)</button>
       <button class="tool" type="button" id="disable-ai" hidden>Turn AI off</button>
     </div>
-    <p>Model downloads only start when you tap a button. Extra support files also download. Neither model is guaranteed to understand every action. If its reply looks malformed, the game uses its regular narration instead. Your existing save is kept.</p>
+    <p id="model-compatibility" class="warning" hidden>The larger model has caused Safari crashes on mobile Apple devices. It cannot be started from this iPhone or iPad; use Lightweight AI or the dependable story engine instead. Your save is not changed.</p>
+    <p>Model downloads only start when you tap a supported option. Extra support files also download. Neither model is guaranteed to understand every action. If its reply looks malformed, the game uses its regular narration instead. Your existing save is kept.</p>
     <div class="statusline" id="ai-status" role="status">AI off. The rule-based story engine is ready to play.</div>
   </section>
   <section id="panel-character" class="panel" hidden><h3>Your wanderer</h3><div id="character-info"></div></section>
   <section id="panel-journal" class="panel" hidden><h3>Adventure journal</h3><div id="journal-info"></div><button class="tool" type="button" id="export-save">Export save</button><button class="tool" type="button" id="restart">Start new adventure</button></section>
   <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try, from talking and fighting to sneaking, investigating, resting and exploring. This prototype has a real rules-driven world with multiple locations, items and consequences.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
-  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.2 · Free to play · No API keys</p>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.3 · Free to play · No API keys</p>
 </main>
 <script type="module" src="./app.js"></script>
 </body>

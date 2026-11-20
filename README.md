@@ -10,7 +10,7 @@ A free, mobile-first, text-based fantasy RPG designed for GitHub Pages. This pro
 
 GitHub Pages should be configured for **GitHub Actions** (the repository has an explicit deploy workflow). Changes may take a little time to publish after a commit.
 
-## Prototype v0.2
+## Prototype v0.3
 
 - Type custom actions instead of choosing from mandatory menus.
 - Explore the Hollow Road, Bell-Mist Valley, Sunken Chapel, Broken Bridge, Ashen Keep, Thornwood and Hunter's Camp.
@@ -61,3 +61,7 @@ This is an **experimental prototype**, not a claim of unlimited ChatGPT-level st
 ### Save compatibility
 
 The v0.2 readability upgrade retains the v0.1 `unwritten-realms-save-v1` save key and schema. It does not reset existing adventures. Previously saved model prose is left unchanged; the new filter applies to future responses.
+
+### iPhone crash prevention (v0.3)
+
+On iPhone and iPad, the larger 360M WebGPU model is intentionally blocked **before** creating a Worker or requesting/download­ing model weights. Apple mobile Safari may terminate the page under WebGPU memory pressure, which JavaScript cannot always catch or recover from. Lightweight AI remains optional; the deterministic story engine remains available. A stalled AI load now times out after 120 seconds without progress, and worker failures clear the loading state. This update retains the `unwritten-realms-save-v1` save key, schema, and existing records.
