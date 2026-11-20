@@ -20,7 +20,7 @@ test("GitHub Pages publishes the SAME artifact tested by mobile Chromium",()=>{
  assert.match(workflow,/path: dist/);
  assert.match(workflow,/npm test/);
  assert.match(quality,/npm run build/);
- assert.match(smoke,/\b"dist"\)/);
+ assert.match(smoke,/"dist"\s*\)/);
  assert.doesNotMatch(workflow,/cp index\.html app\.js game\.js/);
  assert.ok(existsSync(join(root,"dist","narration.js")));
  assert.ok(existsSync(join(root,"dist","ai-safety.js")));

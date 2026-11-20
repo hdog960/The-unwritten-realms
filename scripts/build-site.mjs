@@ -14,7 +14,7 @@ function target(from,ref) {
   const pathname=ref.split(/[?#]/,1)[0];
   const resolved=posix.normalize(posix.join(posix.dirname(from),pathname));
   if (resolved.startsWith("../")||resolved.startsWith("/")||resolved==="..") throw new Error("Outside app shell: "+from+" -> "+ref);
-  return resolved==="."?"index.html":resolved;
+  return resolved==="."||resolved==="./"?"index.html":resolved;
 }
 function assertPackaged(file,ref) {
   const path=target(file,ref);
