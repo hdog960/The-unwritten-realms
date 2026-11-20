@@ -8,9 +8,9 @@ A free, mobile-first, text-based fantasy RPG designed for GitHub Pages. This pro
 
 **GitHub Pages:** https://hdog960.github.io/The-unwritten-realms/
 
-GitHub Pages should be configured for **Deploy from a branch → main → /(root)**. Changes may take a little time to publish after a commit.
+GitHub Pages should be configured for **GitHub Actions** (the repository has an explicit deploy workflow). Changes may take a little time to publish after a commit.
 
-## Prototype v0.1
+## Prototype v0.2
 
 - Type custom actions instead of choosing from mandatory menus.
 - Explore the Hollow Road, Bell-Mist Valley, Sunken Chapel, Broken Bridge, Ashen Keep, Thornwood and Hunter's Camp.
@@ -24,7 +24,7 @@ GitHub Pages should be configured for **Deploy from a branch → main → /(root
 
 **Typing anything is allowed; interpreting everything is not yet solved.** The baseline game recognizes a useful range of actions, but a truly open world needs more work. If the rules engine does not recognize an action, the optional local AI can improvise an in-scene response. AI prose does **not** yet control stats, locations, quests or inventory. The world model remains intentionally deterministic.
 
-Local AI currently tries [SmolLM2-135M-Instruct-ONNX-MHA](https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA) using [Transformers.js](https://github.com/huggingface/transformers.js) in a Web Worker on WebGPU. The compact q4f16 weights are about **118 MB**, plus runtime/tokenizer resources. This is a very small model; narration quality can be limited. Recent Safari/iOS with WebGPU and sufficient free memory is needed. Model loading, generation speed and long-term cache retention are not guaranteed, especially on iPhones. The AI option **does not download anything until you press Enable local AI**.
+The game has two optional narrators using [Transformers.js](https://github.com/huggingface/transformers.js) with WebGPU: [SmolLM2-135M-Instruct-ONNX-MHA](https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA) at about **118 MB** for the lightweight version, and [SmolLM2-360M-Instruct-ONNX](https://huggingface.co/onnx-community/SmolLM2-360M-Instruct-ONNX) at about **272 MB** for the experimental clearer version (q4f16 weights only). The latter may improve readability but could be too slow or memory-hungry for some iPhones. Both can be incoherent. Narration prompts now request short, plain-English text with less random sampling; obviously malformed replies are discarded in favor of the reliable deterministic result. Recent Safari/iOS with WebGPU and sufficient free memory is needed. Model loading, generation speed and long-term cache retention are not guaranteed, especially on iPhones. Neither AI option downloads a model until you explicitly select it.
 
 A browser connection is required initially to fetch app files, the model and its dependencies. Once the UI shell has been cached, the rules engine can work offline; local model caches are browser-managed and may be evicted. The project does not use server-side API keys. Source dependencies/model files are downloaded from a public CDN and Hugging Face; prompts are generated locally once loaded.
 
@@ -36,6 +36,7 @@ No bundler, Node server, database or paid hosting is required.
 - `app.js` — gameplay UI, autosaves, optional model worker
 - `game.js` — world state, action interpretation and model prompt construction
 - `ai-worker.js` — experimental on-device model inference
+- `narration.js` — lightweight readability gate and safe fallback
 - `sw.js` — best-effort offline app shell
 - `tests/game.test.mjs` — deterministic engine checks
 
@@ -56,3 +57,7 @@ The tests need Node 18 or later and no npm dependencies.
 5. **Reliability:** performance tests and offline/mobile recovery on real devices before considering the AI mode production-ready.
 
 This is an **experimental prototype**, not a claim of unlimited ChatGPT-level storytelling at zero cost.
+
+### Save compatibility
+
+The v0.2 readability upgrade retains the v0.1 `unwritten-realms-save-v1` save key and schema. It does not reset existing adventures. Previously saved model prose is left unchanged; the new filter applies to future responses.
