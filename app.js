@@ -138,12 +138,13 @@ function setAIStatus(message, isWarning = false) {
   }
 }
 function disableAI(message = "AI off. The rule-based story engine is ready to play.") {
+  const wasLoading = loading;
   clearLoadWatchdog();
   ready = false;
   loading = false;
   if (worker) { worker.terminate(); worker = null; }
   if(mobileAttempt)endAttempt(aiAttemptStore,false);
-  if(mobileAttempt&&activeModel==="enhanced"&&!ready){retryAllowed=false;el("retry-360m").hidden=false;}
+  if(mobileAttempt&&activeModel==="enhanced"&&wasLoading){retryAllowed=false;el("retry-360m").hidden=false;}
   for (const pending of awaiting.values()) pending.reject(new Error("AI disabled"));
   awaiting.clear();
   activeStyle = "normal";
