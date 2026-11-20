@@ -166,10 +166,10 @@ export function promptFor(result) {
     { role: "system", content: guide + " " + constraint },
     { role: "user", content:
       "Place: " + location(s) + ". Nearby: " + arriving(s) +
-      (recent ? "\\nEarlier: " + recent : "") +
-      "\\nPlayer action: " + result.action +
-      "\\n" + instruction +
-      "\\nConfirmed outcome: " + result.outcome +
-      "\\nNarrate clearly:" }
+      (recent ? "\nEarlier: " + recent : "") +
+      "\nPlayer action: " + result.action +
+      "\n" + instruction +
+      "\nConfirmed outcome: " + result.outcome +
+      "\nNarrate clearly:" }
   ];
 }
