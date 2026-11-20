@@ -35,7 +35,13 @@ self.onmessage = async ({ data }) => {
       return;
     }
     try {
-      const response = await generator(data.messages, {
+      const clear = data.style === "clear";
+      const response = await generator(data.messages, clear ? {
+        max_new_tokens: 75,
+        do_sample: false,
+        repetition_penalty: 1.12,
+        return_full_text: false
+      } : {
         max_new_tokens: 105,
         do_sample: true,
         temperature: 0.45,

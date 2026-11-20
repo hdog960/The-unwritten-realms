@@ -1,6 +1,6 @@
 import { newGame, loadGame, applyAction, promptFor, prompts, SCENES } from "./game.js";
 import { cleanNarration } from "./narration.js";
-import { checkModelSupport, isAppleMobile } from "./ai-safety.js";
+import { checkModelSupport, isAppleMobile, resolveAIChoice } from "./ai-safety.js";
 
 const STORE = "unwritten-realms-save-v1";
 const el = id => document.getElementById(id);
@@ -13,6 +13,17 @@ let loading = false;
 let busy = false;
 let requestId = 0;
 let activeModel = "light";
+let activeStyle = "normal";
+const appleMobile = isAppleMobile(navigator.userAgent, navigator.platform, navigator.maxTouchPoints);
+const baseLightLabel = "Lightweight AI · ~118 MB";
+const baseClearLabel = appleMobile ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
+function resetChoiceLabels() {
+  el("load-ai").textContent = baseLightLabel;
+  el("load-ai-enhanced").textContent = baseClearLabel;
+  el("load-ai").setAttribute("aria-pressed", String(ready && activeStyle === "normal" && activeModel === "light"));
+  el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (activeStyle === "clear" || activeModel === "enhanced")));
+}
+
 let loadWatchdog = null;
 const LOAD_STALL_MS = 120000;
 function clearLoadWatchdog() {
@@ -86,19 +97,36 @@ function disableAI(message = "AI off. The rule-based story engine is ready to pl
   if (worker) { worker.terminate(); worker = null; }
   for (const pending of awaiting.values()) pending.reject(new Error("AI disabled"));
   awaiting.clear();
+  activeStyle = "normal";
   el("mode-label").textContent = "Story engine";
   for (const id of ["load-ai", "load-ai-enhanced"]) {
     el(id).hidden = false;
     el(id).disabled = false;
   }
   el("disable-ai").hidden = true;
+  resetChoiceLabels();
   setAIStatus(message);
 }
-function startAI(model = "light") {
-  if (loading || ready) {
-    if (loading) setAIStatus("The current AI model is still loading. Tap Turn AI off if you want to cancel.");
+function startAI(choice = "light") {
+  const selected = resolveAIChoice(choice, navigator);
+  if (loading) {
+    setAIStatus("AI is already loading. You can cancel with Turn AI off.");
     return;
   }
+  if (ready) {
+    if (activeModel === selected.model) {
+      activeStyle = selected.style;
+      resetChoiceLabels();
+      el("mode-label").textContent = selected.label;
+      setAIStatus(selected.style === "clear"
+        ? "Clear writing enabled. It uses the same lightweight AI with shorter, simpler replies. Try your next action. This is not a larger model."
+        : "Lightweight AI narration enabled. Try your next action.");
+    } else {
+      setAIStatus("To change AI model, tap Turn AI off first. Your adventure will stay saved.", true);
+    }
+    return;
+  }
+  const model = selected.model;
   const support = checkModelSupport(model, navigator);
   if (!support.allowed) {
     setAIStatus(support.message, true);
@@ -115,10 +143,13 @@ function startAI(model = "light") {
   loading = true;
   armLoadWatchdog();
   activeModel = model === "enhanced" ? "enhanced" : "light";
+  activeStyle = selected.style;
   el("load-ai").disabled = true;
   el("load-ai-enhanced").disabled = true;
+  const loadingButton = choice === "clear" ? el("load-ai-enhanced") : el("load-ai");
+  loadingButton.textContent = "Loading AI…";
   el("disable-ai").hidden = false;
-  setAIStatus(activeModel === "enhanced" ? "Preparing clearer AI… about 272 MB of weights plus support files. Device compatibility is not guaranteed." : "Preparing lightweight AI… about 118 MB of weights plus support files.");
+  setAIStatus(activeModel === "enhanced" ? "Preparing larger AI. This may take time and require significant memory." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
   try {
     worker = new Worker("./ai-worker.js", { type: "module" });
     const activeWorker = worker;
@@ -134,16 +165,18 @@ function startAI(model = "light") {
         armLoadWatchdog();
         const part = data.percent != null ? " (" + Math.round(data.percent) + "%)" : "";
         setAIStatus("Downloading / preparing: " + (data.file || "model") + part);
+        loadingButton.textContent = part ? "Loading AI " + part : "Loading AI…";
       } else if (data.type === "ready") {
         clearLoadWatchdog();
         loading = false;
         ready = true;
-        el("load-ai").hidden = true;
-        el("load-ai-enhanced").hidden = true;
         el("load-ai").disabled = false;
         el("load-ai-enhanced").disabled = false;
-        el("mode-label").textContent = activeModel === "enhanced" ? "Clearer AI" : "Lightweight AI";
-        setAIStatus((activeModel === "enhanced" ? "Clearer" : "Lightweight") + " local AI loaded. It may still make mistakes. Tap Turn AI off for the reliable story-engine text.");
+        resetChoiceLabels();
+        el("mode-label").textContent = selected.label;
+        setAIStatus(activeStyle === "clear"
+          ? "Clear writing is ON. It uses the small local AI with shorter, simpler replies. Your next typed action will use it."
+          : "Local AI loaded. Type an action to use it. You can switch writing style or turn it off.");
       } else if (data.type === "error") {
         if (data.id != null && awaiting.has(data.id)) {
           awaiting.get(data.id).reject(new Error(data.message || "Generation failed"));
@@ -163,7 +196,7 @@ function startAI(model = "light") {
     disableAI("Could not create local AI worker: " + err.message);
   }
 }
-function generate(messages) {
+function generate(messages, style = "normal") {
   return new Promise((resolve, reject) => {
     if (!ready || !worker) { reject(new Error("Local AI not loaded")); return; }
     const id = ++requestId;
@@ -177,7 +210,7 @@ function generate(messages) {
       resolve: value => { clearTimeout(timeout); resolve(value); },
       reject: reason => { clearTimeout(timeout); reject(reason); }
     });
-    worker.postMessage({ type: "generate", id, messages });
+    worker.postMessage({ type: "generate", id, messages, style });
   });
 }
 async function takeAction(raw) {
@@ -195,7 +228,7 @@ async function takeAction(raw) {
   if (ready) {
     setAIStatus("Your device is narrating the consequences…");
     try {
-      const narration = await generate(promptFor(result));
+      const narration = await generate(promptFor(result, activeStyle), activeStyle);
       const readable = cleanNarration(narration);
       if (readable) {
         const last = state.history[state.history.length - 1];
@@ -218,7 +251,7 @@ el("action").addEventListener("keydown", event => {
   }
 });
 el("load-ai").addEventListener("click", () => startAI("light"));
-el("load-ai-enhanced").addEventListener("click", () => startAI("enhanced"));
+el("load-ai-enhanced").addEventListener("click", () => startAI("clear"));
 el("disable-ai").addEventListener("click", () => disableAI());
 for (const button of document.querySelectorAll("[data-panel]")) {
   button.addEventListener("click", () => {
@@ -251,12 +284,11 @@ el("export-save").addEventListener("click", () => {
 });
 persist();
 render();
-if (isAppleMobile(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)) {
-  el("load-ai-enhanced").textContent = "Larger AI — iPhone unsupported";
-  el("load-ai-enhanced").classList.remove("primary");
-  el("load-ai-enhanced").classList.add("tool");
+if (appleMobile) {
+  el("load-ai-enhanced").textContent = baseClearLabel;
   el("model-compatibility").hidden = false;
 }
+resetChoiceLabels();
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(() => {});

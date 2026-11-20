@@ -153,10 +153,21 @@ export function applyAction(previous, input) {
   s.history = s.history.slice(-60);
   return { state: s, outcome, previousScene: prior, action: raw, freeform };
 }
-export function promptFor(result) {
+export function promptFor(result, style = "normal") {
   const s = result.state;
   const recent = s.history.slice(-8, -2).filter(m => m.role === "narrator")
     .map(m => m.text).join(" ").slice(-450);
+  if (style === "clear") {
+    const rules = "You tell an adventure in simple English. Write exactly two short sentences using you or your. Say what the player does and what happens next. No poems, long words, lists, or invented rewards.";
+    const action = result.action.replace(/\s+/g, " ").slice(0, 180);
+    const consequence = result.freeform
+      ? "The attempt has no recorded change to the player's items, location or health. Give a small plausible reaction in place."
+      : result.outcome.slice(0, 380);
+    return [
+      { role: "system", content: rules },
+      { role: "user", content: "Location: " + location(s) + "\nAction: " + action + "\nResult: " + consequence + "\nAnswer in two simple sentences:" }
+    ];
+  }
   const guide = "You narrate a fantasy text RPG. Reply in plain English using 2 or 3 short, complete sentences in second person (you/your). Describe concrete actions and their immediate consequences. Avoid flowery language, metaphors, repetition, lists, dialogue tags, and filler. Stay in the current scene. No markdown.";
   const constraint = "Never change health, crowns, items, creatures defeated, or location unless the confirmed outcome says so.";
   const instruction = result.freeform

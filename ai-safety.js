@@ -5,6 +5,15 @@ export function isAppleMobile(userAgent = "", platform = "", maxTouchPoints = 0)
   return /iPhone|iPad|iPod/i.test(String(userAgent)) ||
     (platform === "MacIntel" && Number(maxTouchPoints) > 1);
 }
+export function resolveAIChoice(choice, device = {}) {
+  if (choice === "clear" && isAppleMobile(device.userAgent, device.platform, device.maxTouchPoints)) {
+    return { model: "light", style: "clear", label: "Clear writing (small AI)" };
+  }
+  if (choice === "clear") {
+    return { model: "enhanced", style: "normal", label: "Larger AI" };
+  }
+  return { model: "light", style: "normal", label: "Lightweight AI" };
+}
 export function checkModelSupport(model, device = {}) {
   if (model === "enhanced" &&
       isAppleMobile(device.userAgent, device.platform, device.maxTouchPoints)) {

@@ -10,7 +10,7 @@ A free, mobile-first, text-based fantasy RPG designed for GitHub Pages. This pro
 
 GitHub Pages should be configured for **GitHub Actions** (the repository has an explicit deploy workflow). Changes may take a little time to publish after a commit.
 
-## Prototype v0.3
+## Prototype v0.4
 
 - Type custom actions instead of choosing from mandatory menus.
 - Explore the Hollow Road, Bell-Mist Valley, Sunken Chapel, Broken Bridge, Ashen Keep, Thornwood and Hunter's Camp.
@@ -65,3 +65,7 @@ The v0.2 readability upgrade retains the v0.1 `unwritten-realms-save-v1` save ke
 ### iPhone crash prevention (v0.3)
 
 On iPhone and iPad, the larger 360M WebGPU model is intentionally blocked **before** creating a Worker or requesting/download­ing model weights. Apple mobile Safari may terminate the page under WebGPU memory pressure, which JavaScript cannot always catch or recover from. Lightweight AI remains optional; the deterministic story engine remains available. A stalled AI load now times out after 120 seconds without progress, and worker failures clear the loading state. This update retains the `unwritten-realms-save-v1` save key, schema, and existing records.
+
+### v0.4 — iPhone clearer writing
+
+The iPhone button now **works** rather than silently blocking a model: it selects **Clearer writing**, which uses the safe 135M model with a smaller context, two short-sentence instruction and deterministic decoding. This is **not** the 360M model and may still produce unclear prose; unsuitable outputs fall back to normal game text. If the lightweight model has already loaded, tapping either option instantly switches writing style without re-downloading. Both buttons show loading feedback. The 360M model stays blocked on iPhone and iPad. Save key/schema unchanged.
