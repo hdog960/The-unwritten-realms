@@ -1,0 +1,11 @@
+{
+  "name": "The Unwritten Realms",
+  "short_name": "Unwritten",
+  "description": "A free fantasy text adventure with optional local AI narration.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0e14",
+  "theme_color": "#101319",
+  "icons": [{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]
+}
