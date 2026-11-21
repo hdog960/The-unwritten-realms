@@ -36,8 +36,10 @@ test("iPhone 360M consent is enforced on click, not by a stale disabled attribut
   assert.ok(button,"Missing experimental button");
   assert.doesNotMatch(button,/\sdisabled(?:\s|=|>)/);
   assert.match(app,/el\("load-ai-mobile"\)\.disabled = loading;/);
-  assert.match(app,/choice === "mobile-enhanced" && !el\("mobile-ai-consent"\)\.checked/);
-  assert.ok(app.indexOf('choice === "mobile-enhanced" && !el("mobile-ai-consent").checked') < app.indexOf('worker = new Worker('));
+  assert.match(app,/\(choice === "mobile-enhanced" \|\| choice==="mobile-cpu"\) && !el\("mobile-ai-consent"\)\.checked/);
+  const guard='(choice === "mobile-enhanced" || choice==="mobile-cpu") && !el("mobile-ai-consent").checked';
+  assert.ok(app.indexOf(guard)>=0,"Both 360M backends require the original checkbox consent");
+  assert.ok(app.indexOf(guard) < app.indexOf('worker = new Worker('),"Consent enforced before Worker creation");
 });
 
 test("visible 360M status and versioned Home Screen assets are wired",()=>{
