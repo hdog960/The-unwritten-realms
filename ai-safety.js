@@ -5,7 +5,8 @@ export function isAppleMobile(userAgent="",platform="",maxTouchPoints=0) {
     (platform==="MacIntel" && Number(maxTouchPoints)>1);
 }
 export function resolveAIChoice(choice,device={}) {
-  if(choice==="mobile-enhanced") return {model:"enhanced",style:"normal",label:"Experimental larger AI (360M)"};
+  if(choice==="mobile-enhanced") return {model:"enhanced",style:"normal",label:"360M GPU (experimental)"};
+  if(choice==="mobile-cpu") return {model:"enhanced",style:"normal",label:"360M compatibility AI (CPU)"};
   // Standalone iOS web apps can present desktop-like UA/platform values;
   // prefer the actual compact/touch/standalone screen experience for the safe option.
   if(choice==="clear" && (isAppleMobile(device.userAgent,device.platform,device.maxTouchPoints) || device.mobileExperience===true))

@@ -36,9 +36,9 @@ try {
     Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
   });
   await page.goto(origin+"/",{waitUntil:"domcontentloaded"});
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.6/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.7/);
   assert.match(await page.locator("#location").innerText(),/Hollow Road/);
-  assert.match(await page.locator("#mobile-ai-status").innerText(),/v0\.6\.6 controls connected/);
+  assert.match(await page.locator("#mobile-ai-status").innerText(),/v0\.6\.7 controls connected/);
   assert.equal(await page.locator("#repair-home-app").isVisible(),false);
   await page.locator("#action").fill("I sneak toward the bridge");
   await page.locator("#submit").click();
@@ -104,7 +104,7 @@ try {
   assert.match(await page.locator("#ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.match(await page.locator("#mobile-ai-status").innerText(),/GPU-01: WebGPU is unavailable/);
   assert.equal(await page.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),saveBefore);
-  assert.match(await page.locator(".footer").innerText(),/v0\.6\.6/);
+  assert.match(await page.locator(".footer").innerText(),/v0\.6\.7/);
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker?.controller),null,{timeout:10000}).catch(()=>{});
   await context.setOffline(true);
@@ -117,16 +117,16 @@ try {
   try {
     const repairPage=await repairContext.newPage();
     let blockModule=true;
-    await repairPage.route("**/app.js?v=066",route=>blockModule?route.abort():route.continue());
+    await repairPage.route("**/app.js?v=067",route=>blockModule?route.abort():route.continue());
     await repairPage.goto(origin+"/",{waitUntil:"domcontentloaded"});
-    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/v0\.6\.6/);
+    assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/v0\.6\.7/);
     await repairPage.evaluate(data=>localStorage.setItem("unwritten-realms-save-v1",data),backup);
     await repairPage.locator("#load-ai-mobile").click();
     assert.match(await repairPage.locator("#mobile-ai-status").innerText(),/STARTUP-01/);
     assert.equal(await repairPage.locator("#repair-home-app").isVisible(),true);
     blockModule=false;
     await repairPage.locator("#repair-home-app").click();
-    await repairPage.waitForURL(/app-refresh=066/);
+    await repairPage.waitForURL(/app-refresh=067/);
     await repairPage.waitForFunction(()=>document.querySelector("#mobile-ai-status")?.textContent.includes("controls connected"));
     assert.match(await repairPage.locator("#turn-text").innerText(),/TURN 2/);
     assert.equal(await repairPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);
@@ -180,6 +180,7 @@ try {
     // Emulate Safari: checkbox visually checked without the usual change event.
     // The button must still work because the click handler reads .checked itself.
     await gatedPage.locator("#mobile-ai-consent").evaluate(el=>{el.checked=true;});
+    assert.equal(await gatedPage.locator("#load-ai-cpu").isEnabled(),true);
     assert.equal(await gatedPage.locator("#mobile-ai-consent").isChecked(),true);
     assert.equal(await gatedPage.locator("#load-ai-mobile").isEnabled(),true);
     await gatedPage.locator("#load-ai-mobile").click();
@@ -189,8 +190,8 @@ try {
     assert.equal(init.mobileExperimental,true);
     assert.equal(init.backend,"webllm");
     assert.equal(await gatedPage.evaluate(()=>window.__workerCreated),2);
-    assert.match(await gatedPage.locator("#ai-status").innerText(),/Larger 360M AI loaded/);
-    assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/Larger 360M AI loaded/);
+    assert.match(await gatedPage.locator("#ai-status").innerText(),/360M GPU loaded/);
+    assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/360M GPU loaded/);
     assert.equal(await gatedPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);
     await gatedPage.locator("#disable-ai").click();
     assert.match(await gatedPage.locator("#ai-status").innerText(),/AI off/);
@@ -216,6 +217,52 @@ try {
     await gatedPage.locator("#load-ai-mobile").click();
     assert.equal((await gatedPage.evaluate(()=>window.__workerInit)).backend,"webllm");
   }finally{await gatedContext.close();}
+
+  // Real 390x844 browser smoke: CPU 360M starts without navigator.gpu.
+  const cpuContext=await browser.newContext({
+    viewport:{width:390,height:844},isMobile:true,hasTouch:true,
+    userAgent:"Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Mobile Safari/604.1"
+  });
+  try {
+    const cpuPage=await cpuContext.newPage();
+    cpuPage.on("pageerror",e=>errorList.push("cpu: "+String(e)));
+    await cpuPage.addInitScript(()=>{
+      Object.defineProperty(navigator,"gpu",{configurable:true,value:undefined});
+      window.__cpuInit=null;window.__cpuWorkers=0;
+      window.Worker=class MockCpuWorker {
+        constructor(){window.__cpuWorkers++;}
+        postMessage(data){
+          window.__cpuInit=data;
+          if(data.type==="init"){
+            this.onmessage?.({data:{type:"stage",message:"CPU WASM starting",button:"Loading CPU…"}});
+            this.onmessage?.({data:{type:"ready",model:data.model,backend:data.backend}});
+          }
+        }
+        terminate(){}
+      };
+    });
+    await cpuPage.goto(origin+"/",{waitUntil:"domcontentloaded"});
+    assert.equal(await cpuPage.evaluate(()=>navigator.gpu),undefined);
+    assert.equal(await cpuPage.locator("#load-ai-cpu").isVisible(),true);
+    await cpuPage.locator("#load-ai-cpu").click();
+    assert.match(await cpuPage.locator("#mobile-ai-status").innerText(),/Acknowledge the experimental 360M warning/);
+    assert.equal(await cpuPage.evaluate(()=>window.__cpuWorkers),0);
+    const save=await cpuPage.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1"));
+    await cpuPage.locator("#mobile-ai-consent").check();
+    await cpuPage.locator("#load-ai-cpu").click();
+    const init=await cpuPage.evaluate(()=>window.__cpuInit);
+    assert.equal(init.model,"enhanced");
+    assert.equal(init.mobileExperimental,true);
+    assert.equal(init.backend,"wasm");
+    assert.equal(await cpuPage.evaluate(()=>window.__cpuWorkers),1);
+    assert.match(await cpuPage.locator("#mobile-ai-status").innerText(),/360M CPU AI loaded/);
+    assert.equal(await cpuPage.evaluate(()=>localStorage.getItem("unwritten-realms-save-v1")),save);
+    await cpuPage.locator("#load-ai-mobile").click();
+    assert.match(await cpuPage.locator("#ai-status").innerText(),/Turn AI off first/);
+    assert.equal(await cpuPage.evaluate(()=>window.__cpuWorkers),1);
+    await cpuPage.locator("#disable-ai").click();
+    assert.match(await cpuPage.locator("#ai-status").innerText(),/AI off/);
+  }finally{await cpuContext.close();}
   if(errorList.length)throw new Error("Browser JS errors: "+errorList.join(" | "));
   console.log("Mobile Chromium smoke PASS: story + saves + offline + opt-in WebGPU-unavailable path + mocked 360M worker handoff (not real iPhone inference).");
 } finally {

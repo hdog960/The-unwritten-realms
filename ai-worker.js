@@ -1,16 +1,33 @@
 // All inference is local to this worker. Mobile 360M is opt-in, not crash-proof.
 import {compactAIMessages,narrationGenerationOptions} from "./ai-safety.js";
 import {createMobileEngine,generateMobileText} from "./mobile-llm.js";
+import {createCpu360Pipeline,cpu360GenerationOptions} from "./cpu-360.js";
 const MODELS=Object.freeze({light:"onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",enhanced:"onnx-community/SmolLM2-360M-Instruct-ONNX"});
-let generator=null,mobileEngine=null,activeModel="light",experimentalMobile=false;
+let generator=null,mobileEngine=null,activeModel="light",experimentalMobile=false,backend="webgpu";
 self.onmessage=async({data})=>{
   if(!data?.type)return;
   if(data.type==="init"){
     try {
-      self.postMessage({type:"stage",message:"worker started; checking WebGPU",button:"Checking GPU…"});
-      if(!self.navigator?.gpu)throw new Error("GPU-02: WebGPU unavailable inside dedicated Worker");
       activeModel=MODELS[data.model]?data.model:"light";
       experimentalMobile=activeModel==="enhanced" && data.mobileExperimental===true;
+      backend=experimentalMobile&&data.backend==="wasm"?"wasm":experimentalMobile?"webllm":"webgpu";
+      self.postMessage({type:"stage",message:"worker started; selecting "+backend+" backend",button:"Starting "+backend+"…"});
+      if(backend==="wasm"){
+        self.postMessage({type:"stage",message:"360M CPU compatibility mode: initializing WebAssembly (no GPU)",button:"Loading CPU runtime…"});
+        const {pipeline,env}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/+esm");
+        // GitHub Pages cannot supply COOP/COEP isolation headers. Force a
+        // single WASM thread to avoid SharedArrayBuffer requirements and extra
+        // thread memory allocations on mobile Safari.
+        if(env?.backends?.onnx?.wasm)env.backends.onnx.wasm.numThreads=1;
+        self.postMessage({type:"stage",message:"CPU engine ready (single-thread WASM); downloading q8 360M model (363 MB)",button:"Downloading 360M…"});
+        generator=await createCpu360Pipeline(pipeline,p=>{
+          if(p?.status==="progress"||p?.status==="download")
+            self.postMessage({type:"progress",file:String(p.file||"360M CPU").slice(0,120),percent:p.progress});
+        });
+        self.postMessage({type:"ready",model:activeModel,backend:"wasm"});
+        return;
+      }
+      if(!self.navigator?.gpu)throw new Error("GPU-02: WebGPU unavailable inside dedicated Worker");
       // Check hardware support BEFORE importing Transformers.js or downloading weights.
       if(experimentalMobile){
         self.postMessage({type:"stage",message:"WebGPU found; checking shader-f16 adapter feature",button:"Checking adapter…"});
@@ -57,7 +74,8 @@ self.onmessage=async({data})=>{
         self.postMessage({type:"generated",id:data.id,text:output});
         return;
       }
-      const response=await generator(compactAIMessages(data.messages,experimentalMobile),narrationGenerationOptions(activeModel,data.style,experimentalMobile));
+      const response=await generator(compactAIMessages(data.messages,experimentalMobile),
+        backend==="wasm"?cpu360GenerationOptions():narrationGenerationOptions(activeModel,data.style,experimentalMobile));
       const raw=response?.[0]?.generated_text;
       let output=typeof raw==="string"?raw:"";
       if(Array.isArray(raw))output=String(raw.at(-1)?.content||"");
