@@ -84,3 +84,9 @@ test("360M CPU compatibility route does not require WebGPU",()=>{
  assert.match(w,/createCpu360Pipeline/);
  assert.match(sw,/cpu-360\.js/);
 });
+
+test("CPU and GPU 360M have distinct backends",()=>{
+ const app=file("app.js");
+ assert.match(app,/activeModel === selected.model && activeBackend === requestedBackend/);
+ assert.match(app,/requestedBackend=mobileCpu\?"wasm"/);
+});

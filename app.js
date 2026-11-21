@@ -180,12 +180,14 @@ function startAI(choice = "light") {
     return;
   }
   const selected = resolveAIChoice(choice, aiDevice);
+  const mobileCpu=choice==="mobile-cpu";
+  const requestedBackend=mobileCpu?"wasm":choice==="mobile-enhanced"?"webllm":"webgpu";
   if (loading) {
     setAIStatus("AI is already loading. You can cancel with Turn AI off.");
     return;
   }
   if (ready) {
-    if (activeModel === selected.model) {
+    if (activeModel === selected.model && activeBackend === requestedBackend) {
       activeStyle = selected.style;
       resetChoiceLabels();
       el("mode-label").textContent = selected.label;
@@ -200,8 +202,6 @@ function startAI(choice = "light") {
   }
   const model = selected.model;
   const mobileExperimental = (choice === "mobile-enhanced" || choice==="mobile-cpu") && el("mobile-ai-consent").checked;
-  const mobileCpu=choice==="mobile-cpu";
-  const requestedBackend=mobileCpu?"wasm":choice==="mobile-enhanced"?"webllm":"webgpu";
   const support = checkModelSupport(model, aiDevice, { experimentalMobile: mobileExperimental });
   if (!support.allowed) {
     setAIStatus(support.message, true);
