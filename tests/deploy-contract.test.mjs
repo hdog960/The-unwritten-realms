@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 const root=join(dirname(fileURLToPath(import.meta.url)),"..");
 const required=["index.html","app.js","game.js","narration.js","ai-safety.js",
- "ai-attempt.js","mobile-llm.js","ai-worker.js","sw.js","manifest.webmanifest","icon.svg"];
+ "ai-attempt.js","mobile-llm.js","cpu-360.js","ai-worker.js","sw.js","manifest.webmanifest","icon.svg"];
 test("published Pages artifact contains every required local module and exact source bytes",()=>{
  for(const file of required){
   const original=readFileSync(join(root,file));

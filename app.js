@@ -35,9 +35,10 @@ const aiDevice = {
   maxTouchPoints: navigator.maxTouchPoints,
   mobileExperience
 };
-const MOBILE_AI_BUILD = "v0.6.6";
+const MOBILE_AI_BUILD = "v0.6.7";
 let mobileAttempt = false;
 let retryAllowed = true;
+let activeBackend = "webgpu";
 const aiAttemptStore=window.localStorage;
 const baseLightLabel = "Lightweight AI · ~118 MB";
 const baseClearLabel = mobileExperience ? "Clearer writing · same small AI" : "Larger AI · ~272 MB (desktop)";
@@ -46,12 +47,15 @@ function resetChoiceLabels() {
   el("load-ai-enhanced").textContent = baseClearLabel;
   el("load-ai").setAttribute("aria-pressed", String(ready && activeStyle === "normal" && activeModel === "light"));
   el("load-ai-enhanced").setAttribute("aria-pressed", String(ready && (mobileExperience ? activeStyle === "clear" && activeModel === "light" : activeModel === "enhanced")));
-  el("load-ai-mobile").textContent = ready && activeModel === "enhanced" ? "Optimized 360M active · WebLLM" : "Try optimized 360M · WebLLM (experimental)";
-  el("load-ai-mobile").setAttribute("aria-pressed", String(ready && activeModel === "enhanced"));
+  el("load-ai-mobile").textContent = ready && activeModel==="enhanced"&&activeBackend==="webllm" ? "360M GPU active" : "Try 360M GPU · experimental";
+  el("load-ai-mobile").setAttribute("aria-pressed",String(ready&&activeModel==="enhanced"&&activeBackend==="webllm"));
+  el("load-ai-cpu").textContent = ready&&activeModel==="enhanced"&&activeBackend==="wasm" ? "360M CPU active" : "Use 360M compatibility mode · CPU";
+  el("load-ai-cpu").setAttribute("aria-pressed",String(ready&&activeModel==="enhanced"&&activeBackend==="wasm"));
   // Safari Home Screen can display a checked box without promptly firing change.
   // The button remains tappable; startAI checks consent synchronously before
   // creating any Worker or downloading model weights.
   el("load-ai-mobile").disabled = loading;
+  el("load-ai-cpu").disabled = loading;
 }
 
 let loadWatchdog = null;
@@ -158,20 +162,20 @@ function disableAI(message = "AI off. The rule-based story engine is ready to pl
   setAIStatus(message);
 }
 function startAI(choice = "light") {
-  if (choice === "mobile-enhanced") {
+  if (choice === "mobile-enhanced" || choice==="mobile-cpu") {
     mobileAttempt = true;
-    setAIStatus("360M tap received. Checking consent and GPU…");
+    setAIStatus(choice==="mobile-cpu"?"360M CPU selected. No WebGPU required…":"360M GPU selected. Checking consent and WebGPU…");
   } else {
     mobileAttempt = false;
     el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " · Experimental AI not started.";
   }
   // The only route to 360M is an explicitly acknowledged tap, independent
   // of whether iPhone Home Screen Safari reports a recognisable user agent.
-  if (choice === "mobile-enhanced" && !el("mobile-ai-consent").checked) {
+  if ((choice === "mobile-enhanced" || choice==="mobile-cpu") && !el("mobile-ai-consent").checked) {
     setAIStatus("Acknowledge the experimental 360M warning before loading the larger AI.", true);
     return;
   }
-  if(choice==="mobile-enhanced"&&!retryAllowed){
+  if((choice==="mobile-enhanced"||choice==="mobile-cpu")&&!retryAllowed){
     setAIStatus("SAFETY-01: A previous 360M attempt was interrupted or failed. Use the explicit one-attempt retry control first. The small AI still works.",true);
     return;
   }
@@ -195,7 +199,9 @@ function startAI(choice = "light") {
     return;
   }
   const model = selected.model;
-  const mobileExperimental = choice === "mobile-enhanced" && el("mobile-ai-consent").checked;
+  const mobileExperimental = (choice === "mobile-enhanced" || choice==="mobile-cpu") && el("mobile-ai-consent").checked;
+  const mobileCpu=choice==="mobile-cpu";
+  const requestedBackend=mobileCpu?"wasm":choice==="mobile-enhanced"?"webllm":"webgpu";
   const support = checkModelSupport(model, aiDevice, { experimentalMobile: mobileExperimental });
   if (!support.allowed) {
     setAIStatus(support.message, true);
@@ -205,27 +211,29 @@ function startAI(choice = "light") {
     setAIStatus("WORKER-01: Web Workers are unavailable in this Home Screen app. The story engine remains playable.", true);
     return;
   }
-  if (!navigator.gpu) {
+  if (!navigator.gpu && !mobileCpu) {
     setAIStatus("GPU-01: WebGPU is unavailable to this Home Screen app (navigator.gpu missing). The button responded but 360M cannot load here. Try the same game URL in Safari for comparison. Do not delete your shortcut.", true);
     return;
   }
   loading = true;
   if(mobileExperimental){
-    beginAttempt(aiAttemptStore,"starting Worker");
+    beginAttempt(aiAttemptStore,mobileCpu?"starting CPU WASM Worker":"starting GPU Worker");
     retryAllowed=false;
   }
   armLoadWatchdog();
   activeModel = model === "enhanced" ? "enhanced" : "light";
   activeStyle = selected.style;
+  activeBackend=requestedBackend;
   el("load-ai").disabled = true;
   el("load-ai-enhanced").disabled = true;
   el("load-ai-mobile").disabled = true;
-  const loadingButton = choice === "mobile-enhanced" ? el("load-ai-mobile") : choice === "clear" ? el("load-ai-enhanced") : el("load-ai");
-  loadingButton.textContent = activeModel === "enhanced" ? "Checking WebGPU…" : "Loading AI…";
+  el("load-ai-cpu").disabled = true;
+  const loadingButton = choice === "mobile-enhanced" ? el("load-ai-mobile") : mobileCpu ? el("load-ai-cpu") : choice === "clear" ? el("load-ai-enhanced") : el("load-ai");
+  loadingButton.textContent = mobileCpu?"Starting 360M CPU…":activeModel === "enhanced" ? "Checking WebGPU…" : "Loading AI…";
   el("disable-ai").hidden = false;
-  setAIStatus(activeModel === "enhanced" ? "360M tap accepted. Starting the isolated worker; checking WebGPU before any download." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
+  setAIStatus(mobileCpu?"360M CPU compatibility starting without WebGPU. Loading may be slower." : activeModel === "enhanced" ? "360M GPU selected. Checking WebGPU before any download." : "Starting small local AI (~118 MB of weights). Clear-writing mode keeps this same model. First download may take time.");
   try {
-    worker = new Worker("./ai-worker.js?v=066", { type: "module" });
+    worker = new Worker("./ai-worker.js?v=067", { type: "module" });
     const activeWorker = worker;
     worker.onmessageerror = () => { if (worker === activeWorker) disableAI("WORKER-02: AI worker message failed. Your story engine still works."); };
     worker.onerror = event => {
@@ -246,6 +254,7 @@ function startAI(choice = "light") {
         setAIStatus("Downloading / preparing: " + (data.file || "model") + part);
         loadingButton.textContent = part ? "Loading AI " + part : "Loading AI…";
       } else if (data.type === "ready") {
+        activeBackend=data.backend||requestedBackend;
         if(mobileExperimental){endAttempt(aiAttemptStore,true);retryAllowed=true;el("retry-360m").hidden=true;}
         clearLoadWatchdog();
         loading = false;
@@ -256,7 +265,7 @@ function startAI(choice = "light") {
         el("mode-label").textContent = selected.label;
         setAIStatus(activeStyle === "clear"
           ? "Clear writing is ON. It uses the small local AI with shorter, simpler replies. Your next typed action will use it."
-          : activeModel === "enhanced" ? "Larger 360M AI loaded. Try an action. Turn it off if the device runs slowly."
+          : activeModel === "enhanced" ? (activeBackend==="wasm"?"360M CPU AI loaded! Try an action; replies may be slower.":"360M GPU loaded. Try an action.")
           : "Local AI loaded. Type an action to use it. You can switch writing style or turn it off.");
       } else if (data.type === "error") {
         if(data.id!=null&&mobileAttempt)endAttempt(aiAttemptStore,false);
@@ -274,7 +283,7 @@ function startAI(choice = "light") {
         }
       }
     };
-    worker.postMessage({ type: "init", model: activeModel, mobileExperimental, backend:mobileExperimental?"webllm":"transformers" });
+    worker.postMessage({ type: "init", model: activeModel, mobileExperimental, backend:requestedBackend });
   } catch (err) {
     disableAI("WORKER-04: Could not create local AI worker: " + err.message);
   }
@@ -348,6 +357,7 @@ el("retry-360m").addEventListener("click",()=>{
   setAIStatus("One experimental retry permitted. Check the risk box again before tapping. No model has loaded.",true);
 });
 el("load-ai-mobile").addEventListener("click", () => startAI("mobile-enhanced"));
+el("load-ai-cpu").addEventListener("click", () => startAI("mobile-cpu"));
 el("disable-ai").addEventListener("click", () => disableAI());
 for (const button of document.querySelectorAll("[data-panel]")) {
   button.addEventListener("click", () => {
@@ -444,7 +454,7 @@ if(previousAI.wasInterrupted||previousAI.interruptions>0){
   mobileAttempt=true;
   setAIStatus("SAFETY-02: Previous 360M load did not finish (last stage: "+previousAI.phase+"). Safari may have restarted due to memory, or the page may have been closed. Nothing was restarted. Small AI stays available.",true);
 }else{
-  el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " controls connected. Optimized WebLLM 360M is off until an explicit tap.";
+  el("mobile-ai-status").textContent = MOBILE_AI_BUILD + " controls connected. 360M CPU compatibility is recommended; nothing starts without a tap.";
 }
 // The checkbox + experimental button are always in the HTML, including
 // on iPhone Home Screen apps with unexpected navigator.platform values.

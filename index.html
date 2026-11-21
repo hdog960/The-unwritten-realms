@@ -129,11 +129,12 @@
     <p id="model-compatibility" class="warning">Clearer writing still uses the smaller 135M model. The 360M model is only available through the separate experimental option, after you accept the risk.</p>
     <fieldset id="mobile-ai-experiment" class="ai-experiment">
       <legend>Experimental 360M AI for newer iPhones</legend>
-      <p>Optimized WebLLM 360M with shorter context. Safari may still close or reset under memory pressure. Export your adventure backup and use Wi-Fi. Around 200–300 MB of model/runtime files may download; runtime memory can be much higher. After an interrupted load, retries require separate authorization. Never starts automatically.</p>
+      <p><strong>Recommended for iPhone:</strong> CPU compatibility runs the 360M model using WebAssembly instead of the WebGPU path that has caused resets. It is slower and downloads about 363 MB of model weights. The optional GPU option may still crash Safari. Export your adventure backup, use Wi-Fi, and confirm consent; neither mode loads automatically.</p>
       <label><input id="mobile-ai-consent" type="checkbox"> I understand this experiment may crash Safari; load only when I explicitly tap the button.</label>
-      <button class="primary" id="load-ai-mobile" type="button">Try optimized 360M · WebLLM (experimental)</button>
+      <button class="primary" id="load-ai-cpu" type="button">Use 360M compatibility mode · CPU</button>
+      <button class="tool" id="load-ai-mobile" type="button">Try 360M GPU · experimental</button>
       <button class="tool" id="retry-360m" type="button" hidden>Allow one 360M retry after interruption</button>
-      <p class="mobile-ai-status" id="mobile-ai-status" role="status" aria-live="polite">v0.6.6 · Startup controller has not run. JavaScript may be blocked.</p>
+      <p class="mobile-ai-status" id="mobile-ai-status" role="status" aria-live="polite">v0.6.7 · Startup controller has not run. JavaScript may be blocked.</p>
       <button class="tool" id="repair-home-app" type="button" hidden>Repair game code (keeps saved adventure)</button>
     </fieldset>
     <p>Model downloads only start when you tap a supported option. Extra support files also download. Neither model is guaranteed to understand every action. If its reply looks malformed, the game uses its regular narration instead. Your existing save is kept.</p>
@@ -156,7 +157,7 @@
   </section>
   <section id="panel-map" class="panel" hidden><h3>Explored places</h3><div id="map-info"></div></section>
   <section id="panel-help" class="panel" hidden><h3>How it works</h3><p>Type what you want to try. Explore the roads, chapel, forest, watchtower and keep. Investigate clues and choose what to do about the moon beacon. Important choices stay in your journal.</p><p><strong>Without AI:</strong> the game accepts any text, but only understands a limited range of intentions. <strong>With local AI:</strong> a small model attempts richer narration of the same rule-based outcomes. It cannot yet understand every imaginable request or change the game's hard-coded mechanics.</p><p>Your adventure autosaves in this browser. Export a backup before clearing browser data. Offline access is best effort after an online first visit; AI model caches can be evicted by Safari.</p></section>
-  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6.6 · Free to play · No API keys</p>
+  <p class="footer">THE UNWRITTEN REALMS · Prototype v0.6.7 · Free to play · No API keys</p>
 </main>
 <script>
 (function(){
@@ -164,12 +165,12 @@
  var repair=document.getElementById("repair-home-app");
  var button=document.getElementById("load-ai-mobile");
  var ready=false;
- function failed(message){if(ready)return;status.textContent="v0.6.6 · "+message;repair.hidden=false;}
+ function failed(message){if(ready)return;status.textContent="v0.6.7 · "+message;repair.hidden=false;}
  window.__unwrittenBoot={
-  connected:function(){ready=true;repair.hidden=true;status.textContent="v0.6.6 controls connected. Tap 360M to check WebGPU.";},
+  connected:function(){ready=true;repair.hidden=true;status.textContent="v0.6.7 controls connected. Tap 360M to check WebGPU.";},
   failed:failed
  };
- status.textContent="v0.6.6 startup controller active. Loading game controls…";
+ status.textContent="v0.6.7 startup controller active. Loading game controls…";
  button.addEventListener("click",function(event){
   if(ready)return;
   event.preventDefault();event.stopImmediatePropagation();
@@ -183,7 +184,7 @@
  });
  repair.addEventListener("click",async function(){
   repair.disabled=true;
-  status.textContent="v0.6.6 · Repairing app shell without touching saved adventures…";
+  status.textContent="v0.6.7 · Repairing app shell without touching saved adventures…";
   var home=new URL("./",location.href);
   try {
    if("serviceWorker" in navigator){
@@ -197,12 +198,12 @@
     var keys=await caches.keys();
     for(var j=0;j<keys.length;j++)if(keys[j].indexOf("unwritten-realms-shell-")===0)await caches.delete(keys[j]);
    }
-  }catch(error){status.textContent="v0.6.6 · Repair note: "+String(error.message||error).slice(0,140)+"; refreshing game code…";}
-  location.replace(home.href+"?app-refresh=066");
+  }catch(error){status.textContent="v0.6.7 · Repair note: "+String(error.message||error).slice(0,140)+"; refreshing game code…";}
+  location.replace(home.href+"?app-refresh=067");
  });
  setTimeout(function(){if(!ready)failed("STARTUP-02: Game module never completed loading. Tap Repair game code below.");},6000);
 })();
 </script>
-<script type="module" src="./app.js?v=066"></script>
+<script type="module" src="./app.js?v=067"></script>
 </body>
 </html>

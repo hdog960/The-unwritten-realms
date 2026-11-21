@@ -12,8 +12,8 @@ test("release assets are explicitly cached for offline startup",()=>{
   for(const name of ["index.html","app.js","game.js","narration.js","ai-safety.js","ai-worker.js","icon.svg"]) {
     assert.ok(sw.includes(name),name+" not cached");
   }
-  assert.match(sw,/unwritten-realms-shell-v12/);
-  assert.match(html,/Prototype v0\.6\.6/);
+  assert.match(sw,/unwritten-realms-shell-v13/);
+  assert.match(html,/Prototype v0\.6\.7/);
 });
 test("saved-adventure key and schema remain compatible",()=>{
   const app=file("app.js"),game=file("game.js");
@@ -43,11 +43,11 @@ test("iPhone 360M consent is enforced on click, not by a stale disabled attribut
 test("visible 360M status and versioned Home Screen assets are wired",()=>{
   const html=file("index.html"),app=file("app.js"),sw=file("sw.js"),worker=file("ai-worker.js");
   assert.match(html,/id="mobile-ai-status"/);
-  assert.match(html,/app\.js\?v=066/);
-  assert.match(app,/MOBILE_AI_BUILD = "v0\.6\.6"/);
-  assert.match(app,/ai-worker\.js\?v=066/);
-  assert.match(sw,/app\.js\?v=066/);
-  assert.match(sw,/ai-worker\.js\?v=066/);
+  assert.match(html,/app\.js\?v=067/);
+  assert.match(app,/MOBILE_AI_BUILD = "v0\.6\.7"/);
+  assert.match(app,/ai-worker\.js\?v=067/);
+  assert.match(sw,/app\.js\?v=067/);
+  assert.match(sw,/ai-worker\.js\?v=067/);
   assert.match(worker,/type:"stage"/);
   assert.match(app,/if \(data.type === "stage"\)/);
   assert.match(app,/GPU-01: WebGPU is unavailable/);
@@ -58,7 +58,7 @@ test("standalone classic bootstrap identifies failed module and supports safe re
  assert.match(html,/id="repair-home-app"/);
  assert.match(html,/STARTUP-01:/);
  assert.match(html,/STARTUP-02:/);
- assert.match(html,/app-refresh=066/);
+ assert.match(html,/app-refresh=067/);
  assert.match(html,/unwritten-realms-shell-/);
  assert.match(app,/__unwrittenBoot\?\.connected\(\)/);
  assert.doesNotMatch(html,/localStorage\.clear\(/);
@@ -73,4 +73,14 @@ test("mobile 360M route uses WebLLM and persists unfinished-attempt warnings",()
  assert.match(worker,/@mlc-ai\/web-llm@0\.2\.89/);
  assert.match(sw,/ai-attempt\.js/);
  assert.match(sw,/mobile-llm\.js/);
+});
+
+test("360M CPU compatibility route does not require WebGPU",()=>{
+ const a=file("app.js"),h=file("index.html"),w=file("ai-worker.js"),sw=file("sw.js");
+ assert.match(h,/id="load-ai-cpu"/);
+ assert.match(a,/startAI\("mobile-cpu"\)/);
+ assert.match(a,/if \(!navigator.gpu && !mobileCpu\)/);
+ assert.match(w,/backend==="wasm"/);
+ assert.match(w,/createCpu360Pipeline/);
+ assert.match(sw,/cpu-360\.js/);
 });
