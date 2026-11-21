@@ -190,8 +190,8 @@ try {
     assert.equal(init.mobileExperimental,true);
     assert.equal(init.backend,"webllm");
     assert.equal(await gatedPage.evaluate(()=>window.__workerCreated),2);
-    assert.match(await gatedPage.locator("#ai-status").innerText(),/Larger 360M AI loaded/);
-    assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/Larger 360M AI loaded/);
+    assert.match(await gatedPage.locator("#ai-status").innerText(),/360M GPU loaded/);
+    assert.match(await gatedPage.locator("#mobile-ai-status").innerText(),/360M GPU loaded/);
     assert.equal(await gatedPage.evaluate(()=>JSON.parse(localStorage.getItem("unwritten-realms-save-v1")).version),1);
     await gatedPage.locator("#disable-ai").click();
     assert.match(await gatedPage.locator("#ai-status").innerText(),/AI off/);
