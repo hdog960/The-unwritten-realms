@@ -14,8 +14,12 @@ self.onmessage=async({data})=>{
       self.postMessage({type:"stage",message:"worker started; selecting "+backend+" backend",button:"Starting "+backend+"…"});
       if(backend==="wasm"){
         self.postMessage({type:"stage",message:"360M CPU compatibility mode: initializing WebAssembly (no GPU)",button:"Loading CPU runtime…"});
-        const {pipeline}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/+esm");
-        self.postMessage({type:"stage",message:"CPU engine ready; downloading q8 360M model (363 MB)",button:"Downloading 360M…"});
+        const {pipeline,env}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/+esm");
+        // GitHub Pages cannot supply COOP/COEP isolation headers. Force a
+        // single WASM thread to avoid SharedArrayBuffer requirements and extra
+        // thread memory allocations on mobile Safari.
+        if(env?.backends?.onnx?.wasm)env.backends.onnx.wasm.numThreads=1;
+        self.postMessage({type:"stage",message:"CPU engine ready (single-thread WASM); downloading q8 360M model (363 MB)",button:"Downloading 360M…"});
         generator=await createCpu360Pipeline(pipeline,p=>{
           if(p?.status==="progress"||p?.status==="download")
             self.postMessage({type:"progress",file:String(p.file||"360M CPU").slice(0,120),percent:p.progress});
