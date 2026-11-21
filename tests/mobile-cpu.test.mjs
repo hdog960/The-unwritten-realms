@@ -11,3 +11,10 @@ test("360M compatibility uses a genuine quantized ONNX CPU pipeline, not WebGPU"
  assert.equal(cpu360GenerationOptions().max_new_tokens,40);
  assert.equal(cpu360GenerationOptions().do_sample,false);
 });
+
+test("CPU compatibility explicitly uses one WASM thread for unisolated GitHub Pages iPhone",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const worker=readFileSync(new URL("../ai-worker.js",import.meta.url),"utf8");
+ assert.match(worker,/env\.backends\.onnx\.wasm\.numThreads=1/);
+ assert.match(worker,/if\(backend==="wasm"\)/);
+});
